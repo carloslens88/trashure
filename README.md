@@ -2,49 +2,92 @@
 
 > *La basura de unos es el tesoro de otros.*
 
-Juego de exploración geolocalizada: recorre el mundo real recogiendo "basura"
-que puede resultar ser cualquier cosa — de una lata aplastada a una reliquia
-romana o un fragmento de nave alienígena.
+**🎮 Juega ahora: [trashure.online](https://trashure.online)**
 
-Diseño completo en [GDD.md](GDD.md).
+Juego de exploración geolocalizada estilo Pokémon GO: recorre el mundo real
+recogiendo "basura" que puede resultar ser cualquier cosa — de una lata
+aplastada a una reliquia romana o un fragmento de nave alienígena. Ambientado
+en un yermo postapocalíptico: los **Desechadores** (una civilización
+alienígena) arrasaron la Tierra sin darse cuenta de lo que hacían, y entre
+sus ruinas cada objeto es supervivencia. Diseño y lore completos en
+[GDD.md](GDD.md).
 
-## Ejecutar
+Construido con la meta de **coste de desarrollo ~0 €** (dominio y cuentas de
+tienda aparte). Stack: React + Vite + Leaflet/OpenStreetMap en el cliente,
+Supabase (Postgres, Auth, Realtime, Edge Functions) como backend, desplegado
+en Cloudflare Workers.
+
+## Ejecutar en local
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abre http://localhost:5173. Si concedes permiso de ubicación juegas sobre tu
-zona real; si no, arrancas en Madrid en **modo paseo**: toca el mapa para
-caminar y toca los objetos dentro de tu círculo para recogerlos.
+Abre http://localhost:5173. Con permiso de ubicación juegas sobre tu zona
+real; en local sin GPS arrancas en Madrid en **modo paseo** (solo en
+`npm run dev`: tocar el mapa mueve al jugador — en producción esto está
+desactivado, hay que caminar de verdad).
 
-## Probar en el móvil
+Para probar con GPS real desde el móvil en tu red local:
 
 ```bash
-npm run dev:movil   # HTTPS en tu red local → GPS real en el teléfono
+npm run dev:movil
 ```
 
-Guía completa (incluye deploy gratis y Capacitor): [docs/PROBAR-EN-MOVIL.md](docs/PROBAR-EN-MOVIL.md)
+Guía completa (deploy, Capacitor): [docs/PROBAR-EN-MOVIL.md](docs/PROBAR-EN-MOVIL.md).
+Conectar tu propio backend de Supabase: [docs/FASE2-SUPABASE.md](docs/FASE2-SUPABASE.md).
+Apps nativas con Capacitor: [docs/CAPACITOR.md](docs/CAPACITOR.md).
 
-## Modo online (Fase 2)
+## Qué hay implementado
 
-El juego funciona offline por defecto. Para activar el mundo compartido
-(jugadores visibles en tu zona, recogidas validadas en servidor, base del
-trade), sigue [docs/FASE2-SUPABASE.md](docs/FASE2-SUPABASE.md) — Supabase free
-tier, 0 €.
+**Mundo y exploración**
+- Mapa real con look "yermo postapocalíptico" (Leaflet + OpenStreetMap/CARTO,
+  con respaldo automático de proveedor y aviso si el mapa no llega a cargar).
+- Spawning procedural determinista por celda geográfica + ventana de 10 min,
+  validado en servidor (misma semilla en cliente y edge function: imposible
+  falsear una recogida).
+- Niebla Tóxica: fog-of-war que solo se despeja caminando; territorio
+  cartografiado acumulado y visible en el ranking.
+- Eventos de zona diarios (Marea de Chatarra, Eco de Reliquias, Señal
+  Alienígena), clima real (lluvia = +25 % XP) y **Vigilancia Alienígena**
+  aleatoria con minijuego de Abducción para rescatar tu hallazgo.
+- Anomalías radiactivas (riesgo/recompensa: huir sin saquear rompe tu racha).
+- Escondites diarios de los Desechadores + brújula + Diario coleccionable
+  (12 fragmentos de lore).
+- Tu propio Campamento (suministros diarios) y el Reclamador, un jefe de
+  zona cooperativo semanal.
 
-## Estado actual (Fase 1 — MVP offline)
+**Progresión y economía (autoritativa en servidor)**
+- 6 rarezas, catálogo de objetos con descripciones, sets completables con
+  recompensa y título.
+- Facciones con perks server-side, guerra de facciones semanal.
+- Mercado entre jugadores, trueques, misiones diarias del Gremio, racha
+  diaria, títulos, ranking, un Compañero que camina contigo y olfatea
+  tesoros.
+- Sonido 100 % generado con WebAudio (sin assets) y animaciones en toda la
+  interacción principal.
 
-- Mapa real (Leaflet + OpenStreetMap, coste 0).
-- Spawning procedural determinista por celda geográfica + ventana de 10 min.
-- 6 rarezas, 31 objetos con descripción, catálogo de descubrimientos.
-- Mochila, venta al Gremio (moneda: Chatarra ⚙️), XP y niveles.
-- Guardado local (localStorage). Sin backend todavía.
+**Cuentas y plataforma**
+- Sesión anónima desde el primer segundo; vincular email o recuperar cuenta
+  en otro dispositivo (magic link), con dominio y SMTP propios
+  (`trashure.online` vía Resend) y plantillas de email con marca del juego.
+- i18n español/inglés.
+- PWA instalable + apps nativas Android/iOS vía Capacitor.
+- Desplegado en Cloudflare Workers (`trashure.online` y, en paralelo, la URL
+  original `*.workers.dev`).
+
+## Estructura del backend
+
+- `supabase/schema*.sql` y `supabase/migrations/` — esquema y evolución de
+  la base de datos.
+- `supabase/functions/collect/` — edge function que valida cada recogida
+  (posición, velocidad, spawn determinista, rate limit).
+- `supabase/functions/notify-events/` — notificaciones push diarias.
+- `supabase/email-templates/` — plantillas de email con marca del juego.
 
 ## Próximos pasos
 
-1. **Fase 2:** Supabase (free tier) — cuentas, mundo compartido, trade entre
-   jugadores, validación de recogidas en servidor.
-2. **Capacitor** para empaquetar como app Android/iOS sin reescribir código.
-3. PWA instalable (manifest + service worker) para jugar desde el móvil ya.
+Ideas abiertas, sin comprometer: más fases para el Reclamador, contratos
+diarios más variados, eventos ligados a geografía real (OSM), push nativo
+(FCM/APNs) para las apps de tienda.
