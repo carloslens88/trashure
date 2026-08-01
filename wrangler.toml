@@ -1,0 +1,17 @@
+name = "trashure"
+# Cuenta "Legendary Salad" (la temporal, ya reclamada por el usuario):
+# mantiene la URL https://trashure.legendary-salad.workers.dev
+account_id = "d22e4eedad5e1c63f45ea9d62dd55acd"
+compatibility_date = "2026-07-01"
+
+# Dominio propio (trashure.online, zona ya en Cloudflare). El de
+# workers.dev sigue funcionando en paralelo — es solo un alias más.
+# (workers_dev = true es obligatorio explícito: al añadir "routes" Wrangler
+# lo desactiva por defecto, y la URL vieja está instalada como PWA por ahí.)
+workers_dev = true
+routes = [
+  { pattern = "trashure.online", custom_domain = true }
+]
+
+[assets]
+directory = "./dist"

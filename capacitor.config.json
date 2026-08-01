@@ -1,0 +1,7 @@
+{
+  "appId": "com.trashure.app",
+  "appName": "Trashure",
+  "webDir": "dist",
+  "backgroundColor": "#bae6fd",
+  "ios": { "contentInset": "never" }
+}

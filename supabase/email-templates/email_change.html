@@ -1,0 +1,30 @@
+<div style="background-color:#0f172a;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" style="max-width:420px;margin:0 auto;background-color:#ffffff;border-radius:20px;overflow:hidden;border:3px solid #123a52;">
+    <tr>
+      <td style="background:linear-gradient(135deg,#38bdf8,#0284c7);padding:28px 24px;text-align:center;">
+        <div style="font-size:40px;line-height:1;margin-bottom:6px;">🤖♻️</div>
+        <div style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:1px;">TRASHURE</div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:32px 28px;">
+        <h1 style="margin:0 0 12px;font-size:19px;color:#123a52;">Guarda tu progreso para siempre</h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#475569;">
+          Confirma <strong>{{ .NewEmail }}</strong> para vincularlo a tu personaje. A partir de ahí, tu inventario, tu nivel y tu facción quedan a salvo — podrás recuperarlos desde cualquier dispositivo.
+        </p>
+        <table role="presentation" width="100%"><tr><td align="center">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#0ea5e9;color:#ffffff;font-weight:800;font-size:16px;text-decoration:none;padding:14px 32px;border-radius:14px;border:3px solid #123a52;">Confirmar email</a>
+        </td></tr></table>
+        <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;line-height:1.5;">
+          Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+          <a href="{{ .ConfirmationURL }}" style="color:#0ea5e9;word-break:break-all;">{{ .ConfirmationURL }}</a>
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:16px 28px 24px;text-align:center;border-top:1px solid #e2e8f0;">
+        <p style="margin:0;font-size:11px;color:#94a3b8;">Este enlace caduca pronto y solo puede usarse una vez. Si no fuiste tú, ignora este correo.</p>
+      </td>
+    </tr>
+  </table>
+</div>
