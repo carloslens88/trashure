@@ -14,6 +14,7 @@ const DEFAULTS = {
   xp: 0,
   muted: false,
   introSeen: false,
+  linkNudgeDismissed: false, // aviso de "vincula tu email" en nivel 3 (una vez)
 }
 
 export function loadSave() {

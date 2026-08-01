@@ -870,6 +870,12 @@ body {
   padding: 4px 8px;
 }
 
+.ghost-btn.small {
+  align-self: center;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
 .hud-chip.event {
   background: linear-gradient(170deg, #fef9c3, #fde68a);
   border-color: #b45309;

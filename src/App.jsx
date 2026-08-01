@@ -12,6 +12,7 @@ import Compass from './ui/Compass'
 import HideoutModal from './ui/HideoutModal'
 import PetModal from './ui/PetModal'
 import FactionModal from './ui/FactionModal'
+import LinkNudgeModal from './ui/LinkNudgeModal'
 import AbductionGame from './ui/AbductionGame'
 import BossModal from './ui/BossModal'
 import CampModal from './ui/CampModal'
@@ -162,6 +163,11 @@ export default function App() {
   }
   const [faction, setFaction] = useState(null)
   const [showFaction, setShowFaction] = useState(false)
+  // Aviso de "vincula tu email" al llegar a nivel 3 siendo invitado — una
+  // vez, nunca bloquea (ver LinkNudgeModal)
+  const [isAnonymous, setIsAnonymous] = useState(null)
+  const [linkNudgeDismissed, setLinkNudgeDismissed] = useState(saved.linkNudgeDismissed)
+  const [showLinkNudge, setShowLinkNudge] = useState(false)
   // Escondites de los Desechadores
   const [claimedHideouts, setClaimedHideouts] = useState(() => new Set(saved.claimedHideouts))
   const [loreCount, setLoreCount] = useState(saved.loreCount)
@@ -376,6 +382,7 @@ export default function App() {
     ensureSession().then(async (user) => {
       if (cancelled || !user) return
       setOnline(true)
+      setIsAnonymous(Boolean(user.is_anonymous) && !user.email)
       const profile = await fetchProfile()
       if (cancelled) return
       if (profile) {
@@ -497,8 +504,21 @@ export default function App() {
       xp,
       muted: soundMuted,
       introSeen: !showIntro,
+      linkNudgeDismissed,
     })
-  }, [pos, inventory, collected, discovered, claimedHideouts, explored, exploredTotal, loreCount, pet, scrap, xp, soundMuted, showIntro])
+  }, [pos, inventory, collected, discovered, claimedHideouts, explored, exploredTotal, loreCount, pet, scrap, xp, soundMuted, showIntro, linkNudgeDismissed])
+
+  // Aviso de vincular email: una vez, al llegar a nivel 3 siendo invitado
+  // (después del Compañero, que aparece en nivel 2 — así no compiten)
+  useEffect(() => {
+    if (!online || isAnonymous !== true || linkNudgeDismissed || showLinkNudge) return
+    if (levelInfo(xp).level >= 3) setShowLinkNudge(true)
+  }, [xp, online, isAnonymous, linkNudgeDismissed, showLinkNudge])
+
+  function dismissLinkNudge() {
+    setShowLinkNudge(false)
+    setLinkNudgeDismissed(true)
+  }
 
   function showToast(msg) {
     setToast(msg)
@@ -1016,6 +1036,16 @@ export default function App() {
       )}
       {showFaction && !showIntro && (
         <FactionModal onPick={pickFaction} onLater={() => setShowFaction(false)} />
+      )}
+      {showLinkNudge && !showFaction && !showIntro && !petModal && (
+        <LinkNudgeModal
+          level={levelInfo(xp).level}
+          onLink={() => {
+            dismissLinkNudge()
+            setShowAccount(true)
+          }}
+          onLater={dismissLinkNudge}
+        />
       )}
       {toast && <div className="toast">{toast}</div>}
 

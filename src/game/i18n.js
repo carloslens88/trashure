@@ -378,6 +378,13 @@ const EN = {
   '¿Ya juegas en otro dispositivo?': 'Already playing on another device?',
   '📧 Enlace enviado. Ábrelo aquí para recuperarla.': '📧 Link sent. Open it here to recover it.',
   'Recuperar': 'Recover',
+  '🔒 Guardar progreso': '🔒 Save your progress',
+  '¿Ya tienes cuenta? Recupérala →': 'Already have an account? Recover it →',
+  'Recuperar cuenta': 'Recover account',
+  'Te mandamos un enlace de acceso al email que ya tienes vinculado.':
+    "We'll send an access link to the email you already linked.",
+  '← Volver a vincular': '← Back to linking',
+  '🗺️ Exploración': '🗺️ Exploration',
   '🏅 Títulos': '🏅 Titles',
   '🔒 Por logros: {list} (completa sets del Catálogo)': '🔒 By achievement: {list} (complete Catalog sets)',
   '✏️ Nombre actualizado': '✏️ Name updated',
@@ -392,6 +399,13 @@ const EN = {
   'enlace inválido': 'invalid link',
   '✅ ¡Sesión iniciada! Bienvenido de vuelta, {name}': '✅ Signed in! Welcome back, {name}',
   '🌐 Idioma': '🌐 Language',
+
+  // ---------- Aviso de vincular email (nivel 3) ----------
+  'Protege tu progreso': 'Protect your progress',
+  'Ya vas por el nivel {n}. Vincula tu email y tu personaje —inventario, nivel, facción— queda a salvo para siempre, en cualquier dispositivo.':
+    "You're already level {n}. Link your email and your character —inventory, level, faction— stays safe forever, on any device.",
+  'Vincular mi email': 'Link my email',
+  'Ahora no': 'Not now',
 
   // ---------- El Compañero ----------
   '¡Un Huevo de incubadora!': 'An incubator Egg!',
