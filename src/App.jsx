@@ -882,14 +882,20 @@ export default function App() {
         onPetTap={() => setPetModal('info')}
       />
 
-      {/* Mientras llega el primer fix NO se invita a recargar: cada recarga es
-          una sesión nueva y Safari vuelve a pedir el permiso de ubicación */}
+      {/* Mientras llega el primer fix NO se invita a recargar (cada recarga
+          reinicia el estado, sin garantía de que el navegador vuelva a
+          preguntar). Una vez DENEGADO, recargar NO sirve de nada: el
+          navegador recuerda la negativa por sitio y no vuelve a preguntar
+          solo — hay que reactivarlo a mano en sus propios ajustes. El
+          mensaje se lo explica; el toque sirve para reintentar después. */}
       {tab === 'map' && gpsState === 'locating' && !paseoAllowed && (
         <div className="gps-banner searching">{t('🛰️ Buscando tu señal GPS…')}</div>
       )}
       {tab === 'map' && gpsState === 'denied' && !paseoAllowed && (
         <button className="gps-banner" onClick={() => window.location.reload()}>
-          {t('📵 Trashure se juega caminando: permite la ubicación y toca aquí')}
+          {t(
+            '📵 Tu navegador bloqueó la ubicación. Actívala en los ajustes del sitio (icono junto a la barra de direcciones) y toca aquí para reintentar.',
+          )}
         </button>
       )}
 

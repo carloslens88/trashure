@@ -199,7 +199,8 @@ const EN = {
   '🛸 VIGILANCIA ALIENÍGENA — ×2 XP': '🛸 ALIEN SURVEILLANCE — ×2 XP',
   '☢️ ANOMALÍA RADIACTIVA — recoge el botín o perderás tu racha': "☢️ RADIOACTIVE ANOMALY — grab the loot or you'll lose your streak",
   '🛰️ Buscando tu señal GPS…': '🛰️ Searching for your GPS signal…',
-  '📵 Trashure se juega caminando: permite la ubicación y toca aquí': '📵 Trashure is played by walking: allow location and tap here',
+  '📵 Tu navegador bloqueó la ubicación. Actívala en los ajustes del sitio (icono junto a la barra de direcciones) y toca aquí para reintentar.':
+    '📵 Your browser blocked location access. Turn it on in the site settings (icon next to the address bar) and tap here to retry.',
   '🛰️ Buscando…': '🛰️ Searching…',
   '📵 Sin GPS': '📵 No GPS',
   '🚶 Paseo (pruebas)': '🚶 Stroll (testing)',
