@@ -52,6 +52,9 @@ export const CATALOG = [
   { id: 'plasma', name: 'Batería de plasma', emoji: '🔋', rarity: 'alien', desc: 'Al 2 % desde hace un milenio. Aún da calambre.' },
   { id: 'anomalia', name: 'Anomalía portátil', emoji: '🌀', rarity: 'alien', desc: 'No la mires fijamente. Ella sí te mira.' },
   { id: 'huevo', name: 'Huevo luminoso', emoji: '🥚', rarity: 'alien', desc: 'Está calentito. El Gremio dice que es normal. El Gremio miente.' },
+  // El Núcleo del Desechador: uno solo por día en TODO el servidor, nunca en
+  // el pool de spawn normal — ver dailyUniqueFor en spawn.js.
+  { id: 'nucleo', name: 'Núcleo del Desechador', emoji: '🌌', rarity: 'alien', desc: 'Cada día solo hay uno en todo el yermo. Hoy, alguien lo tendrá. ¿Serás tú?', unique: true },
 ]
 
 export const BY_ID = Object.fromEntries(CATALOG.map((t) => [t.id, t]))

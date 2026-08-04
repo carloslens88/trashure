@@ -10,6 +10,8 @@ const DEFAULTS = {
   exploredTotal: 0, // sectores cartografiados acumulados (histórico, nunca baja)
   loreCount: 0, // fragmentos del Diario desbloqueados
   pet: { stage: 'none', species: null, walkedM: 0 }, // el Compañero (Fragmento X)
+  petAffinity: null, // pesos de especie [5] del cuestionario de facción, o null si no se hizo
+  duelWins: 0, // duelos ganados contra rivales — cariño/orgullo, no economía (como el Compañero)
   scrap: 0,
   xp: 0,
   muted: false,

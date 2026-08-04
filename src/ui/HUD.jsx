@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { levelInfo } from '../game/items'
 import { nextRefreshMs } from '../game/spawn'
 import { t, getLang, setLang, locale } from '../game/i18n'
-import { SPECIES, HATCH_M, petLevel } from '../game/pet'
+import { HATCH_M, petLevel, petForm } from '../game/pet'
 
 function RefreshTimer() {
   const [ms, setMs] = useState(nextRefreshMs())
@@ -82,12 +82,12 @@ export default function HUD({
             title={
               pet.stage === 'egg'
                 ? t('Huevo de incubadora: camina para que eclosione')
-                : SPECIES[pet.species].name
+                : petForm(pet.species, pet.walkedM).name
             }
           >
             {pet.stage === 'egg'
               ? `🥚 ${Math.max(0, (HATCH_M - pet.walkedM) / 1000).toFixed(1)} km`
-              : `${SPECIES[pet.species].emoji} ${t('Nv {n}', { n: petLevel(pet.walkedM) })}`}
+              : `${petForm(pet.species, pet.walkedM).emoji} ${t('Nv {n}', { n: petLevel(pet.walkedM) })}`}
           </button>
         )}
         {!slim && weather === 'storm' && (

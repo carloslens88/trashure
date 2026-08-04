@@ -233,6 +233,7 @@ export default function Account({
   xp,
   scrap,
   explored = 0,
+  duelWins = 0,
   equippedTitle = null,
   onTitle,
   onScrap,
@@ -311,6 +312,20 @@ export default function Account({
             )}
           </p>
         </div>
+
+        {faction && (
+          <>
+            <h3 className="section-title">{t('⚔️ Duelos')}</h3>
+            <div className="account-card">
+              <p className="account-meta">
+                {t('{n} duelos ganados contra rivales', { n: duelWins.toLocaleString(locale()) })}
+              </p>
+              <p className="modal-desc small">
+                {t('Nadie pierde nada por retar ni por perder. Los primeros 5 del día suman puntos a la guerra semanal de tu facción.')}
+              </p>
+            </div>
+          </>
+        )}
 
         <TitlesSection
           equipped={equippedTitle}

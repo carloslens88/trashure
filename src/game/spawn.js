@@ -1,4 +1,4 @@
-import { CATALOG, RARITIES } from './items'
+import { CATALOG, RARITIES, BY_ID } from './items'
 
 export const COLLECT_RADIUS = 60 // metros
 export const CELL = 0.0012 // ~130 m por celda
@@ -28,8 +28,10 @@ function mulberry32(seed) {
 
 const byRarity = {}
 // Los objetos "retired" (ver items.js) siguen en el catálogo por compatibilidad
-// con inventarios ya existentes, pero no vuelven a generarse.
-for (const t of CATALOG) if (!t.retired) (byRarity[t.rarity] ??= []).push(t)
+// con inventarios ya existentes, pero no vuelven a generarse. Los "unique"
+// (el Núcleo del Desechador) tampoco: solo salen de dailyUniqueFor, nunca del
+// pool aleatorio normal.
+for (const t of CATALOG) if (!t.retired && !t.unique) (byRarity[t.rarity] ??= []).push(t)
 
 const RARITY_KEYS = Object.keys(RARITIES)
 
@@ -163,6 +165,64 @@ export function anomaliesNear(pos, day = currentDay()) {
       if (a) list.push(a)
     }
   return list
+}
+
+// ---------- Núcleo del Desechador ----------
+// Un único punto en TODO el mapa, uno por día: el primero en llegar y
+// recogerlo se lo lleva para siempre (nunca vuelve a aparecer ese día, y al
+// día siguiente cambia de sitio). Ubicación determinista por día, anclada
+// alrededor de donde vive la comunidad ahora mismo (Madrid) — el radio de
+// búsqueda es amplio a propósito para que de verdad haga falta patrullar.
+// Si el juego crece a otras ciudades, este ancla habrá que revisarla.
+// ⚠️ Espejo obligatorio en supabase/functions/_shared/spawn.ts
+// El estado de "¿ya se lo llevó alguien hoy?" vive en el servidor
+// (daily_unique_claims), no aquí: esto solo calcula DÓNDE está.
+
+export const WORLD_ANCHOR = { lat: 40.4168, lng: -3.7038 } // Puerta del Sol, Madrid
+export const WORLD_UNIQUE_RADIUS_M = 15000
+export const WORLD_UNIQUE_REVEAL_M = 200
+
+export function dailyUniqueFor(day) {
+  const rng = mulberry32(Math.imul(day, 2246822519) ^ 0x9e3779b9)
+  const ang = rng() * Math.PI * 2
+  const dist = rng() * WORLD_UNIQUE_RADIUS_M
+  const lat = WORLD_ANCHOR.lat + (Math.sin(ang) * dist) / 111320
+  const lng =
+    WORLD_ANCHOR.lng + (Math.cos(ang) * dist) / (111320 * Math.cos((WORLD_ANCHOR.lat * Math.PI) / 180))
+  return { id: `U:${day}`, lat, lng, type: BY_ID.nucleo }
+}
+
+// ---------- Cofre del Gremio ----------
+// Uno por región (~2 km), cambia cada 7 días (no cada día, para diferenciarlo
+// del Escondite). Forzarlo cuesta una Llave misteriosa de tu mochila — y no
+// todas abren algo: hay un % real de perder la llave sin premio. Si abre,
+// el botín es reliquia/alienígena: cosas "inaccesibles" de otro modo.
+// No se agota: cualquiera con llaves puede intentarlo cuantas veces quiera.
+// ⚠️ Espejo obligatorio en supabase/functions/_shared/spawn.ts
+// (la ubicación se regenera en el servidor; el resultado del intento —abre o
+// no, y qué toca— se decide ahí mismo, no aquí)
+
+export const CHEST_REVEAL_M = 150
+
+export function currentWeek() {
+  return Math.floor(currentDay() / 7)
+}
+
+export function chestFor(rx, ry, week) {
+  const rng = mulberry32((rx * 668265263 + ry * 2246822519) ^ Math.imul(week, 1103515245))
+  const lat = (ry + 0.2 + rng() * 0.6) * REGION
+  const lng = (rx + 0.2 + rng() * 0.6) * REGION
+  return { id: `K:${week}:${rx}:${ry}`, lat, lng }
+}
+
+// Los 9 cofres de tu región y las vecinas, ordenados por cercanía
+export function nearbyChests(pos, week = currentWeek()) {
+  const rx0 = Math.floor(pos.lng / REGION)
+  const ry0 = Math.floor(pos.lat / REGION)
+  const list = []
+  for (let dy = -1; dy <= 1; dy++)
+    for (let dx = -1; dx <= 1; dx++) list.push(chestFor(rx0 + dx, ry0 + dy, week))
+  return list.sort((a, b) => distanceM(pos, a) - distanceM(pos, b))
 }
 
 // Rumbo en grados (0 = norte, horario) de a hacia b — para la brújula

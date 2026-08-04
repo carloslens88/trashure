@@ -199,6 +199,8 @@ const EN = {
   '🛸 VIGILANCIA ALIENÍGENA — ×2 XP': '🛸 ALIEN SURVEILLANCE — ×2 XP',
   '☢️ ANOMALÍA RADIACTIVA — recoge el botín o perderás tu racha': "☢️ RADIOACTIVE ANOMALY — grab the loot or you'll lose your streak",
   '🛰️ Buscando tu señal GPS…': '🛰️ Searching for your GPS signal…',
+  '🛰️ Llevamos un rato sin encontrar tu señal. Revisa que la Localización esté activada para ESTE navegador en los ajustes del sistema (no solo el permiso del sitio) y que no esté en modo avión.':
+    "🛰️ We've been searching a while with no signal. Check that Location is turned on for THIS browser in your system settings (not just the site permission), and that airplane mode is off.",
   '📵 Tu navegador bloqueó la ubicación. Actívala en los ajustes del sitio (icono junto a la barra de direcciones) y toca aquí para reintentar.':
     '📵 Your browser blocked location access. Turn it on in the site settings (icon next to the address bar) and tap here to retry.',
   '🛰️ Buscando…': '🛰️ Searching…',
@@ -274,6 +276,139 @@ const EN = {
   'El Gremio exige lealtades. La decisión es ': 'The Guild demands loyalty. The decision is ',
   'para siempre': 'forever',
   'Decidir más tarde': 'Decide later',
+  '★ Recomendada para ti': '★ Recommended for you',
+
+  // ---------- Cuestionario de facción ----------
+  '¿Qué clase de recolector eres?': 'What kind of collector are you?',
+  'Responde y el Gremio te sugerirá una facción y verá algo de ti en tu Compañero.':
+    'Answer and the Guild will suggest a faction — and something of you will show up in your Companion.',
+  'Prefiero elegir sin cuestionario': "I'd rather choose without the quiz",
+  '¿Qué haces cuando encuentras un alijo de desechos sin reclamar?':
+    'What do you do when you find an unclaimed stash of scrap?',
+  'Lo clasifico todo: nada se tira si aún sirve.': "I sort it all: nothing's thrown out if it still works.",
+  'Busco la pieza más antigua y la examino con calma.': 'I look for the oldest piece and study it slowly.',
+  'Cojo lo valioso y desaparezco antes de que llegue nadie.': "I grab what's valuable and vanish before anyone shows up.",
+  'Un forastero te ofrece un trueque que suena demasiado bueno. ¿Qué piensas?':
+    'A stranger offers you a trade that sounds too good. What do you think?',
+  'Prefiero rechazarlo: mejor ganarlo reciclando con mis manos.': "I'd rather turn it down — better to earn it recycling with my own hands.",
+  'Acepto solo si demuestra que la pieza es auténtica.': "I'll accept only if they prove the piece is authentic.",
+  'Acepto sin preguntas: el riesgo también es negocio.': 'I accept no questions asked — risk is business too.',
+  'De noche, en el yermo, ¿qué te hace sentir a salvo?': 'At night, in the wasteland, what makes you feel safe?',
+  'Un buen refugio hecho con lo que otros descartaron.': 'A good shelter built from what others threw away.',
+  'Tener catalogado cada objeto raro que llevo encima.': 'Having every rare item I carry fully catalogued.',
+  'Conocer una ruta que nadie más conoce.': 'Knowing a route nobody else knows.',
+  'El Reclamador de la región despierta. ¿Cuál es tu papel en el asalto?':
+    "The region's Reclaimer wakes up. What's your role in the assault?",
+  'Aguantar en primera línea: proteger lo que recuperamos.': 'Holding the front line: protecting what we recover.',
+  'Documentar el combate: esto será historia algún día.': "Documenting the fight — this'll be history someday.",
+  'Aprovechar el caos para colarme donde no debo.': 'Using the chaos to sneak in where I shouldn\'t.',
+  'Si pudieras quedarte con un solo hallazgo de toda tu carrera, ¿cuál sería?':
+    'If you could keep just one find from your whole career, what would it be?',
+  'Algo roto que reparé con mis propias manos.': 'Something broken that I fixed with my own hands.',
+  'La reliquia más rara que haya visto jamás.': "The rarest relic I've ever seen.",
+  'Algo que nadie más sabe que tengo.': 'Something nobody else knows I have.',
+
+  // ---------- Duelos ----------
+  'Únete a una facción antes de retar a nadie.': 'Join a faction before challenging anyone.',
+  '{name} aún no jura lealtad a ninguna facción. Nada que retar.':
+    "{name} hasn't sworn loyalty to any faction yet. Nothing to challenge.",
+  'Ese recolector': 'That collector',
+  'Es de tu propia facción. Aquí no hay nada que demostrar.': "They're from your own faction. Nothing to prove here.",
+  'Demasiado lejos para un duelo. Acércate.': "Too far for a duel. Get closer.",
+  'Ya os habéis retado hace poco. Dadle un respiro.': "You two already faced off recently. Give it a rest.",
+  '⚔️ ¡Victoria! El Gremio llevará la cuenta de tus duelos ganados.': "⚔️ Victory! The Guild will keep count of your duel wins.",
+  '⚔️ ¡Victoria! +10 puntos para la guerra semanal de tu facción.': "⚔️ Victory! +10 points for your faction's weekly war.",
+  'Nadie pierde nada por retar ni por perder. Los primeros 5 del día suman puntos a la guerra semanal de tu facción.':
+    "Nobody loses anything by challenging or losing. Your first 5 wins each day add points to your faction's weekly war.",
+  '⚔️ Has perdido este pulso… la próxima vez toca más rápido.': "⚔️ You lost this round… tap faster next time.",
+  '¿Retar a {name}?': 'Challenge {name}?',
+  'este recolector': 'this collector',
+  'Es de los ': "They're from the ",
+  '. Un pulso de reflejos, nada más — nadie pierde lo que lleva encima.':
+    ". Just a tap contest — nobody loses what they're carrying.",
+  '¡Adelante! ⚔️': 'Go for it! ⚔️',
+  'Mejor no': 'Better not',
+  '⚔️ Duelo contra {name}': '⚔️ Duel against {name}',
+  'un rival': 'a rival',
+  '¡TOCA! 👊': 'TAP! 👊',
+  '{n} toques más para ganar': '{n} more taps to win',
+  '⚔️ Duelos': '⚔️ Duels',
+  '{n} duelos ganados contra rivales': '{n} duels won against rivals',
+  'Solo cuenta orgullo, no Chatarra: nadie pierde nada por retar ni por perder.':
+    "Only pride is on the line, not Scrap: nobody loses anything by challenging or losing.",
+
+  // ---------- Reclutamiento de divergentes ----------
+  'Te han echado el ojo': "They've got their eye on you",
+  '{name}, de los {faction}, te ha visto merodear por su territorio.':
+    '{name}, of the {faction}, has seen you lurking around their territory.',
+  'Recuerda: unirte a una facción es ': 'Remember: joining a faction is ',
+  'Unirme a los {faction}': 'Join the {faction}',
+  'Seguir por libre': 'Stay independent',
+  'Un recolector': 'A collector',
+
+  // ---------- Núcleo del Desechador ----------
+  'El Núcleo del Desechador — solo hay uno hoy en todo el yermo':
+    "The Discarder's Core — there's only one today in the whole wasteland",
+  '🌌 Núcleo': '🌌 Core',
+  '🌌 ¡Eres el Portador del Núcleo de hoy! Título exclusivo conseguido — nadie más podrá tenerlo hasta mañana':
+    "🌌 You're today's Core Bearer! Exclusive title unlocked — nobody else can get it until tomorrow",
+  'alguien se te adelantó: el Núcleo de hoy ya tiene dueño': 'someone beat you to it: today\'s Core already has an owner',
+  'el Núcleo de ese día ya cambió de sitio': "that day's Core has already moved on",
+  'Cada día solo hay uno en todo el yermo. Hoy, alguien lo tendrá. ¿Serás tú?':
+    "There's only one in the whole wasteland each day. Someone will have it today. Will it be you?",
+  'Núcleo del Desechador': "Discarder's Core",
+  'Portador del Núcleo': 'Core Bearer',
+
+  // ---------- Fusión de objetos ----------
+  '✨ ¡{a} evolucionó a {b}!': '✨ {a} evolved into {b}!',
+  'No se pudo fusionar: {e}': "Couldn't fuse it: {e}",
+  'Funde {n} de estos en 1 {name}': 'Fuse {n} of these into 1 {name}',
+  '✨ Fusionar ({have}/{need}) → {emoji}': '✨ Fuse ({have}/{need}) → {emoji}',
+  'ese objeto no se puede fusionar': "that item can't be fused",
+  'necesitas 5 unidades libres de ese objeto para fusionar': 'you need 5 free units of that item to fuse',
+
+  // ---------- Cofre del Gremio ----------
+  'Cofre del Gremio': "Guild's Chest",
+  'Sellado hace quién sabe cuánto. Una Llave misteriosa podría forzarlo — aunque no todas abren algo.':
+    "Sealed who knows how long ago. A Mysterious key might force it open — though not every key works.",
+  'Tienes {n} llave(s). Forzarlo consume una, abra o no.': 'You have {n} key(s). Forcing it uses one, whether it opens or not.',
+  'Forzar la cerradura 🗝️': 'Force the lock 🗝️',
+  'Necesitas una Llave misteriosa (objeto raro) para intentarlo.': 'You need a Mysterious key (a rare item) to try.',
+  'La llave encajó. El Gremio se pregunta qué más habrá cerrado.': 'The key fit. The Guild wonders what else it might have locked.',
+  'La llave no encajaba…': "The key didn't fit…",
+  'Se rompió en el intento. El cofre sigue ahí, cerrado, para el siguiente que lo intente.':
+    'It broke in the attempt. The chest is still there, locked, for the next one to try.',
+  'Necesitas estar conectado para forzar cofres.': 'You need to be online to force chests open.',
+  '📵 Activa la ubicación para forzar cofres': '📵 Turn on location to force chests open',
+  'No se pudo forzar el cofre: {e}': "Couldn't force the chest: {e}",
+  'Cofre del Gremio — hace falta una Llave misteriosa': "Guild's Chest — needs a Mysterious key",
+  '🔒 Cofre': '🔒 Chest',
+  'ese cofre ya cambió de sitio': 'that chest already moved elsewhere',
+  'necesitas una Llave misteriosa libre (que no esté en venta) para forzarlo':
+    'you need a free Mysterious key (not listed for sale) to force it',
+  'no se pudo abrir el cofre': "couldn't open the chest",
+
+  // ---------- Skins ----------
+  '🤖 Tu robot': '🤖 Your robot',
+  '👕 Vestuario': '👕 Wardrobe',
+  'Sin skin': 'No skin',
+  'Exclusiva de {faction}': 'Exclusive to {faction}',
+  '✨ ¡Skin adquirida!': '✨ Skin acquired!',
+  'No se pudo equipar: {e}': "Couldn't equip it: {e}",
+  'esa skin no existe': "that skin doesn't exist",
+  'esa skin es exclusiva de otra facción': 'that skin is exclusive to another faction',
+  'ya tienes esa skin': 'you already have that skin',
+  'no tienes esa skin': "you don't have that skin",
+
+  // ---------- Tarjeta de hallazgo ----------
+  '📤 Compartir hallazgo': '📤 Share find',
+  '📤 Tarjeta de hallazgo': '📤 Find card',
+  'Compartir 📤': 'Share 📤',
+  'Descargar imagen': 'Download image',
+  'Cerrar': 'Close',
+  '¡Mira lo que he encontrado en Trashure!': 'Look what I found in Trashure!',
+  'Encontrado por {name} en el yermo': 'Found by {name} in the wasteland',
+  'Encontrado en el yermo': 'Found in the wasteland',
 
   // ---------- Mercado y trueques ----------
   '🏪 Mercado': '🏪 Market',
@@ -414,6 +549,10 @@ const EN = {
   'Camina {km} km con él encima y eclosionará. Le gusta el traqueteo.': 'Walk {km} km with it on you and it will hatch. It likes the jostling.',
   'Guardarlo con cuidado 🎒': 'Store it carefully 🎒',
   '¡Ha nacido {name}!': '{name} has hatched!',
+  '¡{from} evolucionó a {to}!': '{from} evolved into {to}!',
+  'Todo lo caminado ha dejado huella. {name} ya no es lo que era.':
+    "All that walking left its mark. {name} isn't what it used to be.",
+  '¡Impresionante! 🐾': 'Amazing! 🐾',
   'Te seguirá a todas partes y olfateará tesoros raros cerca. Cuanto más caminéis juntos, más fino será su olfato.': 'It will follow you everywhere and sniff out rare treasure nearby. The more you walk together, the sharper its nose.',
   'A explorar juntos 🐾': 'Explore together 🐾',
   'Huevo de incubadora': 'Incubator Egg',

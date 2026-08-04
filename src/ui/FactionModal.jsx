@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FACTIONS } from '../game/items'
 import { t } from '../game/i18n'
 
-export default function FactionModal({ onPick, onLater }) {
+export default function FactionModal({ onPick, onLater, recommended }) {
   const [busy, setBusy] = useState(false)
 
   async function pick(key) {
@@ -25,11 +25,12 @@ export default function FactionModal({ onPick, onLater }) {
         {Object.entries(FACTIONS).map(([key, f]) => (
           <button
             key={key}
-            className="faction-card"
+            className={`faction-card${key === recommended ? ' recommended' : ''}`}
             style={{ '--fc': f.color }}
             disabled={busy}
             onClick={() => pick(key)}
           >
+            {key === recommended && <span className="faction-reco">{t('★ Recomendada para ti')}</span>}
             <span className="faction-emoji">{f.emoji}</span>
             <span className="faction-body">
               <strong>{t(f.name)}</strong>

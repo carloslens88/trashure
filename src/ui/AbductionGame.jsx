@@ -4,21 +4,36 @@ import { playCoin, playError, playVigilance } from '../game/sound'
 import { t } from '../game/i18n'
 
 const TAPS_TO_WIN = 8
-const RISE_PER_TICK = 1.05 // % de altitud cada 60 ms (~5,7 s hasta la nave)
-const YANK = 9 // % que baja el objeto con cada toque
+const RISE_PER_TICK = 1.05 // % de altitud cada 60 ms (~5,7 s hasta la nave a dificultad plena)
+const YANK = 9 // % que baja el objeto con cada toque, a dificultad plena
+
+// Cuanta menos experiencia, más margen: el Vigía sube más despacio y cada
+// toque empuja más fuerte. A partir de nivel 6 es la dificultad de siempre.
+function riseFactor(level) {
+  if (level <= 2) return 0.55
+  if (level <= 5) return 0.78
+  return 1
+}
+function yankFactor(level) {
+  if (level <= 2) return 1.25
+  if (level <= 5) return 1.1
+  return 1
+}
 
 // El Vigía intenta abducir tu hallazgo: tócalo repetidamente para arrancárselo
 // al haz antes de que llegue a la nave. Solo pasa durante la Vigilancia.
-export default function AbductionGame({ item, onWin, onLose }) {
+export default function AbductionGame({ item, level = 99, onWin, onLose }) {
   const [altitude, setAltitude] = useState(8)
   const [taps, setTaps] = useState(0)
   const done = useRef(false)
+  const rise = RISE_PER_TICK * riseFactor(level)
+  const yank = YANK * yankFactor(level)
 
   useEffect(() => {
     playVigilance()
     const iv = setInterval(() => {
       setAltitude((a) => {
-        const next = a + RISE_PER_TICK
+        const next = a + rise
         if (next >= 100 && !done.current) {
           done.current = true
           playError()
@@ -34,7 +49,7 @@ export default function AbductionGame({ item, onWin, onLose }) {
   function tap() {
     if (done.current) return
     playCoin()
-    setAltitude((a) => Math.max(4, a - YANK))
+    setAltitude((a) => Math.max(4, a - yank))
     setTaps((n) => {
       const next = n + 1
       if (next >= TAPS_TO_WIN) {
@@ -54,7 +69,7 @@ export default function AbductionGame({ item, onWin, onLose }) {
         <div className="abduction-beam" />
         <button
           className="abduction-item"
-          style={{ bottom: `${100 - altitude}%`, '--rc': r.color }}
+          style={{ bottom: `${altitude}%`, '--rc': r.color }}
           onPointerDown={tap}
         >
           {item.type.emoji}

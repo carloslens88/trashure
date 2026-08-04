@@ -172,6 +172,35 @@ export function vigilance(zoneX: number, zoneY: number, bucket: number): boolean
   return rng() < 0.08
 }
 
+// Núcleo del Desechador — espejo exacto de src/game/spawn.js (dailyUniqueFor)
+export const WORLD_ANCHOR = { lat: 40.4168, lng: -3.7038 }
+export const WORLD_UNIQUE_RADIUS_M = 15000
+
+export function dailyUniqueFor(day: number): SpawnedItem {
+  const rng = mulberry32(Math.imul(day, 2246822519) ^ 0x9e3779b9)
+  const ang = rng() * Math.PI * 2
+  const dist = rng() * WORLD_UNIQUE_RADIUS_M
+  const lat = WORLD_ANCHOR.lat + (Math.sin(ang) * dist) / 111320
+  const lng =
+    WORLD_ANCHOR.lng + (Math.cos(ang) * dist) / (111320 * Math.cos((WORLD_ANCHOR.lat * Math.PI) / 180))
+  return { id: `U:${day}`, lat, lng, typeId: 'nucleo' }
+}
+
+// Cofre del Gremio — espejo exacto de src/game/spawn.js (chestFor). Solo
+// calcula DÓNDE está: si abre o no, y con qué, se decide en collect/index.ts.
+export interface ChestSpot {
+  id: string
+  lat: number
+  lng: number
+}
+
+export function chestFor(rx: number, ry: number, week: number): ChestSpot {
+  const rng = mulberry32((rx * 668265263 + ry * 2246822519) ^ Math.imul(week, 1103515245))
+  const lat = (ry + 0.2 + rng() * 0.6) * REGION
+  const lng = (rx + 0.2 + rng() * 0.6) * REGION
+  return { id: `K:${week}:${rx}:${ry}`, lat, lng }
+}
+
 export function distanceM(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371000
   const toRad = (d: number) => (d * Math.PI) / 180

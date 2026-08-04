@@ -1,9 +1,10 @@
 import { t, locale } from '../game/i18n'
-import { SPECIES, HATCH_M, LEVEL_M, MAX_LEVEL, petLevel, sniffRadius } from '../game/pet'
+import { HATCH_M, LEVEL_M, MAX_LEVEL, petLevel, sniffRadius, petForm } from '../game/pet'
 
-// Tres momentos del Compañero: hallazgo del Huevo, eclosión y ficha.
-export default function PetModal({ mode, pet, onClose }) {
-  const species = pet.species != null ? SPECIES[pet.species] : null
+// Cuatro momentos del Compañero: hallazgo del Huevo, eclosión, evolución de
+// etapa y ficha.
+export default function PetModal({ mode, pet, evolvedFrom, onClose }) {
+  const species = pet.species != null ? petForm(pet.species, pet.walkedM) : null
   const level = petLevel(pet.walkedM)
   const km = (m) => (m / 1000).toLocaleString(locale(), { maximumFractionDigits: 1 })
 
@@ -41,6 +42,21 @@ export default function PetModal({ mode, pet, onClose }) {
             </p>
             <button className="primary-btn" onClick={onClose}>
               {t('A explorar juntos 🐾')}
+            </button>
+          </>
+        )}
+
+        {mode === 'evolved' && species && (
+          <>
+            <div className="modal-emoji pet-bounce">{species.emoji}</div>
+            <h2>{t('¡{from} evolucionó a {to}!', { from: evolvedFrom?.name ?? '', to: species.name })}</h2>
+            <p className="modal-desc">
+              {t('Todo lo caminado ha dejado huella. {name} ya no es lo que era.', {
+                name: species.name,
+              })}
+            </p>
+            <button className="primary-btn" onClick={onClose}>
+              {t('¡Impresionante! 🐾')}
             </button>
           </>
         )}

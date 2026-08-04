@@ -3,7 +3,7 @@ import { t } from '../game/i18n'
 
 const CONFETTI = ['✨', '⭐', '💫', '🎉', '✨', '⭐', '💫', '🎉', '✨', '⭐']
 
-export default function CollectModal({ item, onConfirm, onDismiss }) {
+export default function CollectModal({ item, onConfirm, onDismiss, onShare }) {
   const r = RARITIES[item.type.rarity]
   const fancy = item.type.rarity !== 'comun' && item.type.rarity !== 'pocoComun'
   return (
@@ -35,6 +35,11 @@ export default function CollectModal({ item, onConfirm, onDismiss }) {
         <button className="primary-btn" onClick={onConfirm}>
           {t('¡A la mochila! 🎒')}
         </button>
+        {fancy && (
+          <button className="ghost-btn" onClick={onShare}>
+            {t('📤 Compartir hallazgo')}
+          </button>
+        )}
         <button className="ghost-btn" onClick={onDismiss}>
           {t('Dejarlo en el suelo')}
         </button>

@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
 import { BY_ID, RARITIES, RARITY_ORDER } from '../game/items'
+import { fusionTarget, FUSION_COST } from '../game/craft'
 import { t } from '../game/i18n'
 
-export default function Inventory({ inventory, onSell }) {
+export default function Inventory({ inventory, faction, onSell, onFuse }) {
   const groups = useMemo(() => {
     const counts = new Map()
     for (const entry of inventory) counts.set(entry.typeId, (counts.get(entry.typeId) ?? 0) + 1)
@@ -28,6 +29,8 @@ export default function Inventory({ inventory, onSell }) {
           {groups.map(({ type, count }) => {
             const r = RARITIES[type.rarity]
             const shiny = !['comun', 'pocoComun'].includes(type.rarity)
+            const target = fusionTarget(type.id, faction)
+            const canFuse = target && count >= FUSION_COST
             return (
               <div
                 key={type.id}
@@ -41,6 +44,20 @@ export default function Inventory({ inventory, onSell }) {
                 <button className="sell-btn" onClick={() => onSell(type.id)}>
                   {t('Vender +{v} ⚙️', { v: r.value })}
                 </button>
+                {target && (
+                  <button
+                    className="fuse-btn"
+                    disabled={!canFuse}
+                    title={t('Funde {n} de estos en 1 {name}', { n: FUSION_COST, name: t(BY_ID[target].name) })}
+                    onClick={() => onFuse(type.id)}
+                  >
+                    {t('✨ Fusionar ({have}/{need}) → {emoji}', {
+                      have: Math.min(count, FUSION_COST),
+                      need: FUSION_COST,
+                      emoji: BY_ID[target].emoji,
+                    })}
+                  </button>
+                )}
               </div>
             )
           })}

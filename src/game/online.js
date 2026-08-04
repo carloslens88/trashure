@@ -88,7 +88,7 @@ export async function fetchProfile() {
   const { data } = await supabase
     .from('profiles')
     .select(
-      'username, xp, scrap, faction, streak, last_day, title, explored, camp_lat, camp_lng, camp_moved_at, camp_claim_day',
+      'username, xp, scrap, faction, streak, last_day, title, skin, explored, camp_lat, camp_lng, camp_moved_at, camp_claim_day',
     )
     .eq('id', userId)
     .maybeSingle()
@@ -114,6 +114,14 @@ export async function claimCamp(pos) {
 export async function fetchBossStatus(pos) {
   if (!supabase) return null
   const { data, error } = await supabase.rpc('boss_status', { p_lat: pos.lat, p_lng: pos.lng })
+  if (error) throw new Error(error.message)
+  return data?.[0] ?? null
+}
+
+// El Núcleo del Desechador: ¿ya se lo llevó alguien hoy (y quién)?
+export async function fetchDailyUniqueStatus() {
+  if (!supabase) return null
+  const { data, error } = await supabase.rpc('daily_unique_status')
   if (error) throw new Error(error.message)
   return data?.[0] ?? null
 }
@@ -209,6 +217,37 @@ export async function equipTitle(titleId) {
   if (error) throw new Error(error.message)
 }
 
+// ---------- Skins del robot ----------
+
+export async function fetchMySkins() {
+  if (!supabase || !userId) return []
+  const { data, error } = await supabase.from('player_skins').select('skin_id').eq('player', userId)
+  if (error) throw new Error(error.message)
+  return data.map((r) => r.skin_id)
+}
+
+export async function buySkin(skinId) {
+  const { data, error } = await supabase.rpc('buy_skin', { s: skinId })
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function equipSkin(skinId) {
+  const { error } = await supabase.rpc('equip_skin', { s: skinId })
+  if (error) throw new Error(error.message)
+}
+
+// ---------- Duelos → guerra semanal ----------
+
+// Devuelve true si el duelo contó para la guerra de tu facción, false si ya
+// llegaste al tope diario (el duelo se gana igual, solo deja de sumar puntos)
+export async function submitDuelWin() {
+  if (!supabase || !userId) return false
+  const { data, error } = await supabase.rpc('submit_duel_win')
+  if (error) return false // sin facción, sin conexión, etc. — no interrumpir la victoria por esto
+  return Boolean(data)
+}
+
 // ---------- Guerra semanal ----------
 
 export async function fetchWarStatus() {
@@ -284,6 +323,24 @@ export async function collectOnline(item, pos) {
   return data
 }
 
+// Forzar el Cofre del Gremio con una llave: consume del inventario del
+// servidor, así que solo tiene sentido online — devuelve {opened, typeId?, xpGained?}
+export async function openChestOnline(chest, pos) {
+  const { data, error } = await supabase.functions.invoke('collect', {
+    body: { spawnId: chest.id, typeId: 'llave', lat: pos.lat, lng: pos.lng },
+  })
+  if (error) {
+    let message = error.message
+    try {
+      message = (await error.context.json()).error ?? message
+    } catch {
+      /* sin cuerpo JSON */
+    }
+    throw new Error(message)
+  }
+  return data
+}
+
 // Venta autoritativa: el servidor valida propiedad, calcula el valor desde
 // catalog_items y abona la Chatarra. Devuelve el nuevo total de Chatarra.
 export async function sellItemOnline(itemId) {
@@ -292,37 +349,77 @@ export async function sellItemOnline(itemId) {
   return data
 }
 
-export function zoneKey(pos) {
-  return `${Math.floor(pos.lat / 0.01)}:${Math.floor(pos.lng / 0.01)}`
+// Funde 5 unidades de typeId en 1 del siguiente escalón; devuelve el type_id resultante
+export async function fuseItemsOnline(typeId) {
+  const { data, error } = await supabase.rpc('fuse_items', { t: typeId })
+  if (error) throw new Error(error.message)
+  return data
 }
 
-// Presencia: te une al canal de tu zona (~1 km) y te avisa de quién más está.
-export function joinZone(pos, onPeers) {
+function cellOf(pos) {
+  return { cy: Math.floor(pos.lat / 0.01), cx: Math.floor(pos.lng / 0.01) }
+}
+
+export function zoneKey(pos) {
+  const { cy, cx } = cellOf(pos)
+  return `${cy}:${cx}`
+}
+
+// Presencia: te une al canal de tu celda (~1 km) Y escuchas (sin emitir) las
+// 8 vecinas. Sin esto, dos jugadores muy cerca pero a cada lado exacto de un
+// borde de celda (algo que no tiene ninguna relación con la geografía real:
+// una misma calle o plaza puede partir la rejilla en dos) nunca compartían
+// canal y no se veían el uno al otro — bug real reportado en pruebas.
+// Solo TRACKEAS en tu propia celda (para no aparecer duplicado); las 8
+// vecinas son puramente de escucha. meta (facción/nombre) va en cada
+// track(): así viaja siempre fresca sin depender de un segundo canal.
+export function joinZone(pos, onPeers, meta = {}) {
   if (!supabase || !userId) return { move() {}, leave() {} }
-  let subscribed = false
-  const channel = supabase.channel(`zone:${zoneKey(pos)}`, {
-    config: { presence: { key: userId } },
-  })
-  channel
-    .on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState()
-      const peers = Object.entries(state)
-        .filter(([key]) => key !== userId)
-        .map(([key, metas]) => ({ id: key, ...metas[0] }))
-      onPeers(peers)
-    })
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        subscribed = true
-        channel.track({ lat: pos.lat, lng: pos.lng, at: Date.now() })
-      }
-    })
+  const { cy: cy0, cx: cx0 } = cellOf(pos)
+  const peersByChannel = new Map()
+  const channels = []
+  let ownChannel = null
+  let ownSubscribed = false
+
+  function emitMerged() {
+    const merged = new Map()
+    for (const list of peersByChannel.values()) for (const p of list) merged.set(p.id, p)
+    onPeers([...merged.values()])
+  }
+
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const isOwn = dy === 0 && dx === 0
+      const key = `${cy0 + dy}:${cx0 + dx}`
+      const channel = supabase.channel(`zone:${key}`, {
+        config: { presence: { key: userId } },
+      })
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState()
+          const peers = Object.entries(state)
+            .filter(([k]) => k !== userId)
+            .map(([k, metas]) => ({ id: k, ...metas[0] }))
+          peersByChannel.set(key, peers)
+          emitMerged()
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED' && isOwn) {
+            ownSubscribed = true
+            channel.track({ lat: pos.lat, lng: pos.lng, at: Date.now(), ...meta })
+          }
+        })
+      channels.push(channel)
+      if (isOwn) ownChannel = channel
+    }
+  }
+
   return {
-    move(p) {
-      if (subscribed) channel.track({ lat: p.lat, lng: p.lng, at: Date.now() })
+    move(p, meta = {}) {
+      if (ownSubscribed) ownChannel.track({ lat: p.lat, lng: p.lng, at: Date.now(), ...meta })
     },
     leave() {
-      supabase.removeChannel(channel)
+      for (const c of channels) supabase.removeChannel(c)
       onPeers([])
     },
   }

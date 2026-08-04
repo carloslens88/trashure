@@ -8,15 +8,23 @@ import Market from './ui/Market'
 import Leaderboard from './ui/Leaderboard'
 import Missions from './ui/Missions'
 import Account from './ui/Account'
-import Compass from './ui/Compass'
+import CompassPanel from './ui/CompassPanel'
 import HideoutModal from './ui/HideoutModal'
+import ChestModal from './ui/ChestModal'
+import PlayerCardModal from './ui/PlayerCardModal'
+import ShareCardModal from './ui/ShareCardModal'
 import PetModal from './ui/PetModal'
 import FactionModal from './ui/FactionModal'
+import FactionQuiz from './ui/FactionQuiz'
 import LinkNudgeModal from './ui/LinkNudgeModal'
 import AbductionGame from './ui/AbductionGame'
+import DuelChallengeModal from './ui/DuelChallengeModal'
+import DuelGame from './ui/DuelGame'
+import RecruitModal from './ui/RecruitModal'
 import BossModal from './ui/BossModal'
 import CampModal from './ui/CampModal'
 import { BY_ID, RARITIES, FACTIONS, levelInfo } from './game/items'
+import { fusionTarget, FUSION_COST } from './game/craft'
 import {
   currentBucket,
   nextRefreshMs,
@@ -30,8 +38,11 @@ import {
   vigilanceAt,
   ZONE_EVENTS,
   COLLECT_RADIUS,
+  dailyUniqueFor,
+  nearbyChests,
+  HIDEOUT_REVEAL_M,
 } from './game/spawn'
-import { SPECIES, HATCH_M, petLevel, sniffRadius, cardinal } from './game/pet'
+import { HATCH_M, petLevel, sniffRadius, cardinal, weightedSpecies, petForm, combinedAffinity } from './game/pet'
 import { LORE_FRAGMENTS } from './game/lore'
 import { t } from './game/i18n'
 import { watchPosition } from './game/geo'
@@ -56,16 +67,30 @@ import {
   fetchInventory,
   collectOnline,
   sellItemOnline,
+  fuseItemsOnline,
   joinFaction,
   joinZone,
   zoneKey,
   reportExplored,
   anomalyFlee,
   fetchBossStatus,
+  fetchDailyUniqueStatus,
+  openChestOnline,
+  submitDuelWin,
   consumeAuthRedirect,
 } from './game/online'
 
 const DEFAULT_POS = { lat: 40.4168, lng: -3.7038 } // Puerta del Sol, Madrid
+
+// Duelos: alcance amplio a propósito (no es recogida de precisión, es "te he
+// visto"), y un respiro entre retos al mismo rival para que no se convierta
+// en spam de un toque.
+const DUEL_RADIUS = 80
+const DUEL_COOLDOWN_MS = 5 * 60 * 1000
+// Reclutamiento de divergentes: igual de generoso en alcance; cooldown largo
+// para que no se sienta como un acoso constante mientras exploras.
+const RECRUIT_RADIUS = 80
+const RECRUIT_COOLDOWN_MS = 20 * 60 * 1000
 
 // La racha cuenta días UTC (igual que el servidor)
 const utcToday = () => new Date().toISOString().slice(0, 10)
@@ -81,6 +106,7 @@ export default function App() {
   const [bucket, setBucket] = useState(currentBucket())
   const [tab, setTab] = useState('map')
   const [modalItem, setModalItem] = useState(null)
+  const [shareItem, setShareItem] = useState(null)
   const [toast, setToast] = useState(null)
   const [showIntro, setShowIntro] = useState(!saved.introSeen)
   const [peers, setPeers] = useState([])
@@ -99,6 +125,8 @@ export default function App() {
   // Día UTC de tu última recogida: si no es hoy, la racha está "pendiente"
   const [lastDay, setLastDay] = useState(null)
   const [title, setTitle] = useState(null)
+  const [skin, setSkin] = useState(null)
+  const [showPlayerCard, setShowPlayerCard] = useState(false)
   const [weather, setWeather] = useState('clear')
   const [xpFloats, setXpFloats] = useState([])
   const [flyItems, setFlyItems] = useState([])
@@ -106,11 +134,21 @@ export default function App() {
   const [levelBurst, setLevelBurst] = useState(null)
   // Minijuego de Abducción: el Vigía intenta robarte la recogida
   const [abduction, setAbduction] = useState(null)
+  // Duelos contra rivales de otra facción: confirmación → minijuego en vivo
+  const [duelChallenge, setDuelChallenge] = useState(null) // peer pendiente de confirmar
+  const [duel, setDuel] = useState(null) // peer con el que se está duelando ahora
+  const [duelWins, setDuelWins] = useState(saved.duelWins)
+  const duelCooldown = useRef(new Map())
+  // Reclutamiento ambiental para divergentes (sin facción)
+  const [recruitOffer, setRecruitOffer] = useState(null)
+  const recruitCooldown = useRef(0)
   // El Reclamador (jefe de zona) y tu Campamento
   const [boss, setBoss] = useState(null)
   const [showBoss, setShowBoss] = useState(false)
   const [camp, setCampState] = useState(null)
   const [showCamp, setShowCamp] = useState(false)
+  // El Núcleo del Desechador: uno por día en todo el servidor
+  const [nucleoStatus, setNucleoStatus] = useState(null)
 
   function addXpFloat(text) {
     const id = `${Date.now()}-${Math.random()}`
@@ -163,6 +201,16 @@ export default function App() {
   }
   const [faction, setFaction] = useState(null)
   const [showFaction, setShowFaction] = useState(false)
+  // Forma previa del Compañero cuando evoluciona de etapa (para el modal
+  // "X evolucionó a Y" — pet.walkedM ya está actualizado cuando se pinta,
+  // así que la forma anterior hay que guardarla aparte)
+  const [evolvedFrom, setEvolvedFrom] = useState(null)
+  // Cuestionario de estilo de juego: recomienda facción y pondera la
+  // especie del Compañero. 'quiz' solo se muestra la primera vez (mientras
+  // no haya afinidad guardada); tras eso o al saltarlo, pasa a 'pick'.
+  const [factionStage, setFactionStage] = useState(saved.petAffinity ? 'pick' : 'quiz')
+  const [quizRecommended, setQuizRecommended] = useState(null)
+  const [petAffinity, setPetAffinity] = useState(saved.petAffinity)
   // Aviso de "vincula tu email" al llegar a nivel 3 siendo invitado — una
   // vez, nunca bloquea (ver LinkNudgeModal)
   const [isAnonymous, setIsAnonymous] = useState(null)
@@ -193,6 +241,9 @@ export default function App() {
   const exploredRef = useRef(explored)
   exploredRef.current = explored
   const [hideoutModal, setHideoutModal] = useState(null)
+  // Cofre del Gremio: null = cerrado; {chest} = abierto, esperando intento;
+  // {chest, opened, typeId, xpGained} = ya intentado
+  const [chestModal, setChestModal] = useState(null)
   const toastTimer = useRef(0)
   const zoneRef = useRef(null)
   const zone = zoneKey(pos)
@@ -225,6 +276,21 @@ export default function App() {
       },
     )
   }, [])
+
+  // Si "locating" se alarga demasiado, casi nunca es el permiso del sitio
+  // (eso da 'denied' al momento) — suele ser la Localización del sistema
+  // desactivada para ESE navegador en concreto, algo que el código no puede
+  // detectar. Tras un buen rato sin fix, se amplía el aviso con la
+  // comprobación exacta a hacer, en vez de dejarlo "buscando…" para siempre.
+  const [gpsStuck, setGpsStuck] = useState(false)
+  useEffect(() => {
+    if (gpsState !== 'locating') {
+      setGpsStuck(false)
+      return
+    }
+    const t = setTimeout(() => setGpsStuck(true), 20000)
+    return () => clearTimeout(t)
+  }, [gpsState])
 
   // Cada celda pisada queda cartografiada (con tope de tamaño); patrullar una
   // celda conocida refresca su sello para que la tormenta no la reclame
@@ -268,15 +334,29 @@ export default function App() {
     if (d < 2 || d > 200) return
     const walked = pet.walkedM + d
     if (pet.stage === 'egg' && walked >= HATCH_M) {
-      setPet({ stage: 'hatched', species: Math.floor(Math.random() * SPECIES.length), walkedM: walked })
+      setPet({ stage: 'hatched', species: weightedSpecies(combinedAffinity(petAffinity, faction)), walkedM: walked })
       setPetModal('hatched')
       playLevelUp()
       return
     }
     if (pet.stage === 'hatched' && petLevel(walked) > petLevel(pet.walkedM)) {
-      const name = SPECIES[pet.species].name
-      showToast(t('🐾 ¡{name} sube a nivel {n}! Su olfato se afina', { name, n: petLevel(walked) }))
-      playCoin()
+      const prevForm = petForm(pet.species, pet.walkedM)
+      const newForm = petForm(pet.species, walked)
+      if (newForm.stage > prevForm.stage) {
+        // Evolución de etapa (no solo subir de nivel): momento especial, su
+        // propio modal en vez de un toast que pasaría desapercibido
+        setEvolvedFrom(prevForm)
+        setPetModal('evolved')
+        playLevelUp()
+      } else {
+        showToast(
+          t('🐾 ¡{name} sube a nivel {n}! Su olfato se afina', {
+            name: newForm.name,
+            n: petLevel(walked),
+          }),
+        )
+        playCoin()
+      }
     }
     setPet((p) => ({ ...p, walkedM: walked }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -303,7 +383,7 @@ export default function App() {
       if (treasures.length === 0) return
       treasures.sort((a, b) => distanceM(pos, a) - distanceM(pos, b))
       const target = treasures[0]
-      const species = SPECIES[pet.species]
+      const species = petForm(pet.species, pet.walkedM)
       showToast(
         t('{emoji} ¡{name} olfatea algo valioso a {d} m al {dir}!', {
           emoji: species.emoji,
@@ -393,6 +473,7 @@ export default function App() {
         setStreak(profile.streak ?? 0)
         setLastDay(profile.last_day ?? null)
         setTitle(profile.title)
+        setSkin(profile.skin)
         // territorio: el mayor entre lo local y lo que conoce el servidor
         setExploredTotal((t) => Math.max(t, profile.explored ?? 0))
         if (profile.camp_lat != null) {
@@ -419,7 +500,7 @@ export default function App() {
   // Presencia en la zona (~1 km)
   useEffect(() => {
     if (!online) return
-    zoneRef.current = joinZone(pos, setPeers)
+    zoneRef.current = joinZone(pos, setPeers, { faction, username })
     return () => {
       zoneRef.current?.leave()
       zoneRef.current = null
@@ -428,9 +509,36 @@ export default function App() {
   }, [zone, online])
 
   // Movimientos dentro de la misma zona: refresca tu posición para los demás
+  // (la facción/nombre viaja en cada tick: si cambian, los demás lo ven al
+  // siguiente movimiento sin necesidad de reconectar el canal)
   useEffect(() => {
-    zoneRef.current?.move(pos)
-  }, [pos])
+    zoneRef.current?.move(pos, { faction, username })
+  }, [pos, faction, username])
+
+  // Reclutamiento de divergentes: si no tienes facción, cruzarte con alguien
+  // que sí la tiene puede acabar en una propuesta. Con cooldown largo para
+  // que no se sienta como acoso, y sin pisar otros modales en pantalla.
+  const recruitCtx = useRef({})
+  recruitCtx.current = { pos, peers, faction, recruitOffer, duel, duelChallenge, abduction, showFaction, showIntro, petModal }
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const { pos, peers, faction, recruitOffer, duel, duelChallenge, abduction, showFaction, showIntro, petModal } =
+        recruitCtx.current
+      if (faction || recruitOffer || duel || duelChallenge || abduction || showFaction || showIntro || petModal) return
+      if (Date.now() - recruitCooldown.current < RECRUIT_COOLDOWN_MS) return
+      const candidate = peers.find((p) => p.faction && distanceM(pos, p) <= RECRUIT_RADIUS)
+      if (!candidate) return
+      recruitCooldown.current = Date.now()
+      setRecruitOffer({ factionKey: candidate.faction, recruiterName: candidate.username || t('Un recolector') })
+    }, 15000)
+    return () => clearInterval(iv)
+  }, [])
+
+  async function acceptRecruit() {
+    const offer = recruitOffer
+    setRecruitOffer(null)
+    await pickFaction(offer.factionKey)
+  }
 
   // Clima real de tu zona (cada ~15 min o al cambiar de zona)
   useEffect(() => {
@@ -461,6 +569,16 @@ export default function App() {
     return () => clearInterval(iv)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bossRegion, online])
+
+  // El Núcleo del Desechador: uno por día en todo el servidor. Se comprueba
+  // si ya tiene dueño hoy (para dejar de mostrarlo) cada minuto.
+  useEffect(() => {
+    if (!online) return
+    const refresh = () => fetchDailyUniqueStatus().then(setNucleoStatus).catch(() => {})
+    refresh()
+    const iv = setInterval(refresh, 60000)
+    return () => clearInterval(iv)
+  }, [online])
 
   // La mochila del servidor cambia también por trueques: refrescar
   // periódicamente y al abrirla
@@ -500,13 +618,15 @@ export default function App() {
       exploredTotal,
       loreCount,
       pet,
+      petAffinity,
+      duelWins,
       scrap,
       xp,
       muted: soundMuted,
       introSeen: !showIntro,
       linkNudgeDismissed,
     })
-  }, [pos, inventory, collected, discovered, claimedHideouts, explored, exploredTotal, loreCount, pet, scrap, xp, soundMuted, showIntro, linkNudgeDismissed])
+  }, [pos, inventory, collected, discovered, claimedHideouts, explored, exploredTotal, loreCount, pet, petAffinity, duelWins, scrap, xp, soundMuted, showIntro, linkNudgeDismissed])
 
   // Aviso de vincular email: una vez, al llegar a nivel 3 siendo invitado
   // (después del Compañero, que aparece en nivel 2 — así no compiten)
@@ -563,6 +683,58 @@ export default function App() {
     setModalItem(item)
   }
 
+  // Tocar a otro recolector en el mapa: solo es retable si tiene facción,
+  // es rival (no la tuya) y estás lo bastante cerca. Los divergentes (sin
+  // facción, ni propia ni del rival) no retan ni son retados.
+  function handlePeerTap(peer) {
+    if (!faction) {
+      showToast(t('Únete a una facción antes de retar a nadie.'))
+      return
+    }
+    if (!peer.faction) {
+      showToast(t('{name} aún no jura lealtad a ninguna facción. Nada que retar.', { name: peer.username || t('Ese recolector') }))
+      return
+    }
+    if (peer.faction === faction) {
+      showToast(t('Es de tu propia facción. Aquí no hay nada que demostrar.'))
+      return
+    }
+    if (distanceM(pos, peer) > DUEL_RADIUS) {
+      showToast(t('Demasiado lejos para un duelo. Acércate.'))
+      return
+    }
+    const last = duelCooldown.current.get(peer.id) ?? 0
+    if (Date.now() - last < DUEL_COOLDOWN_MS) {
+      showToast(t('Ya os habéis retado hace poco. Dadle un respiro.'))
+      return
+    }
+    setDuelChallenge(peer)
+  }
+
+  function confirmDuel() {
+    const peer = duelChallenge
+    setDuelChallenge(null)
+    duelCooldown.current.set(peer.id, Date.now())
+    setDuel(peer)
+  }
+
+  async function duelWin() {
+    setDuel(null)
+    setDuelWins((n) => n + 1)
+    playLevelUp()
+    const countedForWar = online && faction ? await submitDuelWin() : false
+    showToast(
+      countedForWar
+        ? t('⚔️ ¡Victoria! +10 puntos para la guerra semanal de tu facción.')
+        : t('⚔️ ¡Victoria! El Gremio llevará la cuenta de tus duelos ganados.'),
+    )
+  }
+
+  function duelLose() {
+    setDuel(null)
+    showToast(t('⚔️ Has perdido este pulso… la próxima vez toca más rápido.'))
+  }
+
   async function confirmCollect() {
     const item = modalItem
     setModalItem(null)
@@ -612,6 +784,11 @@ export default function App() {
         setXp(newXp)
         setServerInv((inv) => [{ id: res.itemId, type_id: res.typeId, owner: null }, ...inv])
         refreshBoss() // tu recogida acaba de dañar al Reclamador
+        if (item.type.id === 'nucleo') {
+          if (typeof res.scrap === 'number') setScrap(res.scrap)
+          playLevelUp()
+          showToast(t('🌌 ¡Eres el Portador del Núcleo de hoy! Título exclusivo conseguido — nadie más podrá tenerlo hasta mañana'))
+        }
       } catch (e) {
         setCollected((s) => {
           const next = new Set(s)
@@ -656,6 +833,41 @@ export default function App() {
     addFlyCoin()
     setInventory((inv) => inv.filter((_, i) => i !== idx))
     setScrap((s) => s + RARITIES[BY_ID[typeId].rarity].value)
+  }
+
+  async function handleFuse(typeId) {
+    const target = fusionTarget(typeId, faction)
+    if (!target) return
+    if (online) {
+      try {
+        await fuseItemsOnline(typeId)
+        playLevelUp()
+        setDiscovered((s) => new Set(s).add(target))
+        showToast(
+          t('✨ ¡{a} evolucionó a {b}!', { a: t(BY_ID[typeId].name), b: t(BY_ID[target].name) }),
+        )
+        refreshServerInv()
+      } catch (e) {
+        showToast(t('No se pudo fusionar: {e}', { e: t(e.message) }))
+      }
+      return
+    }
+    const matching = inventory.filter((e) => e.typeId === typeId)
+    if (matching.length < FUSION_COST) return
+    playLevelUp()
+    setDiscovered((s) => new Set(s).add(target))
+    showToast(t('✨ ¡{a} evolucionó a {b}!', { a: t(BY_ID[typeId].name), b: t(BY_ID[target].name) }))
+    setInventory((inv) => {
+      let toRemove = FUSION_COST
+      const kept = inv.filter((e) => {
+        if (e.typeId === typeId && toRemove > 0) {
+          toRemove--
+          return false
+        }
+        return true
+      })
+      return [...kept, { typeId: target, at: Date.now() }]
+    })
   }
 
   // La mochila muestra el inventario del servidor cuando hay sesión
@@ -740,6 +952,16 @@ export default function App() {
     [pos, claimedHideouts, bucket], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
+  // El Cofre del Gremio más cercano: no se agota, siempre hay uno que apuntar
+  const chest = useMemo(() => nearbyChests(pos)[0] ?? null, [pos])
+
+  // El Núcleo del Desechador de hoy (null si ya tiene dueño hoy o si aún no
+  // se ha consultado el estado del servidor)
+  const nucleo = useMemo(
+    () => (nucleoStatus && !nucleoStatus.claimed ? dailyUniqueFor(currentDay()) : null),
+    [nucleoStatus],
+  )
+
   function handleHideoutTap(h) {
     if (!gpsActive && !paseoAllowed) {
       showToast(t('📵 Activa la ubicación para abrir escondites'))
@@ -750,6 +972,43 @@ export default function App() {
       return
     }
     setHideoutModal({ hideout: h, opened: false })
+  }
+
+  function handleChestTap(k) {
+    if (!online) {
+      showToast(t('Necesitas estar conectado para forzar cofres.'))
+      return
+    }
+    if (!gpsActive && !paseoAllowed) {
+      showToast(t('📵 Activa la ubicación para forzar cofres'))
+      return
+    }
+    if (distanceM(pos, k) > COLLECT_RADIUS) {
+      showToast(t('🧭 La brújula vibra… pero aún no estás encima'))
+      return
+    }
+    setChestModal({ chest: k })
+  }
+
+  async function attemptChest() {
+    const k = chestModal.chest
+    try {
+      const res = await openChestOnline(k, pos)
+      if (res.opened) {
+        const newXp = res.xp || xp + res.xpGained
+        maybeLevelUp(xp, newXp)
+        setXp(newXp)
+        setDiscovered((s) => new Set(s).add(res.typeId))
+        setServerInv((inv) => [{ id: res.itemId, type_id: res.typeId, owner: null }, ...inv])
+        playLevelUp()
+      } else {
+        playError()
+      }
+      setChestModal({ chest: k, ...res })
+    } catch (e) {
+      showToast(t('No se pudo forzar el cofre: {e}', { e: t(e.message) }))
+      setChestModal(null)
+    }
   }
 
   async function openHideout() {
@@ -813,17 +1072,25 @@ export default function App() {
         collected={collected}
         peers={peers}
         hideout={hideout}
+        nucleo={nucleo}
+        chest={online ? chest : null}
         weather={weather}
         vigilance={vigilActive}
         night={night}
         explored={explored}
         anomalies={anomalies}
-        pet={pet.stage === 'hatched' ? SPECIES[pet.species] : null}
+        pet={pet.stage === 'hatched' ? petForm(pet.species, pet.walkedM) : null}
         camp={camp}
+        faction={faction}
+        skin={skin}
         onWalk={handleWalk}
         onItemTap={handleItemTap}
         onHideoutTap={handleHideoutTap}
         onCampTap={() => setShowCamp(true)}
+        onPeerTap={handlePeerTap}
+        onNucleoTap={handleItemTap}
+        onChestTap={handleChestTap}
+        onPlayerTap={() => online && setShowPlayerCard(true)}
       />
 
       {tab === 'map' && vigilActive && (
@@ -889,7 +1156,13 @@ export default function App() {
           solo — hay que reactivarlo a mano en sus propios ajustes. El
           mensaje se lo explica; el toque sirve para reintentar después. */}
       {tab === 'map' && gpsState === 'locating' && !paseoAllowed && (
-        <div className="gps-banner searching">{t('🛰️ Buscando tu señal GPS…')}</div>
+        <div className="gps-banner searching">
+          {gpsStuck
+            ? t(
+                '🛰️ Llevamos un rato sin encontrar tu señal. Revisa que la Localización esté activada para ESTE navegador en los ajustes del sistema (no solo el permiso del sitio) y que no esté en modo avión.',
+              )
+            : t('🛰️ Buscando tu señal GPS…')}
+        </div>
       )}
       {tab === 'map' && gpsState === 'denied' && !paseoAllowed && (
         <button className="gps-banner" onClick={() => window.location.reload()}>
@@ -906,6 +1179,7 @@ export default function App() {
           xp={xp}
           scrap={scrap}
           explored={exploredTotal}
+          duelWins={duelWins}
           equippedTitle={title}
           onTitle={setTitle}
           onScrap={setScrap}
@@ -915,7 +1189,41 @@ export default function App() {
         />
       )}
 
-      {tab === 'map' && hideout && <Compass pos={pos} hideout={hideout} />}
+      {tab === 'map' && (
+        <CompassPanel
+          rows={[
+            hideout && { pos, target: hideout, label: t('🗝️ Escondite'), revealM: HIDEOUT_REVEAL_M },
+            nucleo && {
+              pos,
+              target: nucleo,
+              label: t('🌌 Núcleo'),
+              revealM: COLLECT_RADIUS,
+              title: t('El Núcleo del Desechador — solo hay uno hoy en todo el yermo'),
+            },
+            online &&
+              chest && {
+                pos,
+                target: chest,
+                label: t('🔒 Cofre'),
+                revealM: COLLECT_RADIUS,
+                title: t('Cofre del Gremio — hace falta una Llave misteriosa'),
+              },
+            online &&
+              boss && {
+                icon: '👾',
+                label: t('Reclamador'),
+                dead: Number(boss.hp_done) >= boss.hp_goal,
+                value:
+                  Number(boss.hp_done) >= boss.hp_goal
+                    ? boss.claimed
+                      ? t('derrotado')
+                      : t('¡botín!')
+                    : `${Math.max(0, boss.hp_goal - Number(boss.hp_done)).toLocaleString()} PV`,
+                onClick: () => setShowBoss(true),
+              },
+          ]}
+        />
+      )}
 
       {online && (
         <button className="rank-btn" onClick={() => setShowRank(true)} aria-label={t('Ranking')}>
@@ -936,19 +1244,6 @@ export default function App() {
           ⛺
         </button>
       )}
-      {online && tab === 'map' && boss && (
-        <button
-          className={`boss-chip ${Number(boss.hp_done) >= boss.hp_goal ? 'dead' : ''}`}
-          onClick={() => setShowBoss(true)}
-        >
-          👾{' '}
-          {Number(boss.hp_done) >= boss.hp_goal
-            ? boss.claimed
-              ? t('derrotado')
-              : t('¡botín!')
-            : `${Math.max(0, boss.hp_goal - Number(boss.hp_done)).toLocaleString()} PV`}
-        </button>
-      )}
       {showRank && <Leaderboard onClose={() => setShowRank(false)} />}
       {showMissions && (
         <Missions
@@ -959,7 +1254,9 @@ export default function App() {
         />
       )}
 
-      {tab === 'bag' && <Inventory inventory={bagEntries} onSell={handleSell} />}
+      {tab === 'bag' && (
+        <Inventory inventory={bagEntries} faction={faction} onSell={handleSell} onFuse={handleFuse} />
+      )}
       {tab === 'catalog' && (
         <Catalog
           discovered={discovered}
@@ -1004,7 +1301,11 @@ export default function App() {
           item={modalItem}
           onConfirm={confirmCollect}
           onDismiss={() => setModalItem(null)}
+          onShare={() => setShareItem(modalItem)}
         />
+      )}
+      {shareItem && (
+        <ShareCardModal item={shareItem} username={username} onClose={() => setShareItem(null)} />
       )}
       {hideoutModal && (
         <HideoutModal
@@ -1013,9 +1314,58 @@ export default function App() {
           onClose={() => setHideoutModal(null)}
         />
       )}
-      {petModal && <PetModal mode={petModal} pet={pet} onClose={() => setPetModal(null)} />}
+      {petModal && (
+        <PetModal
+          mode={petModal}
+          pet={pet}
+          evolvedFrom={evolvedFrom}
+          onClose={() => setPetModal(null)}
+        />
+      )}
+      {chestModal && (
+        <ChestModal
+          keyCount={bagEntries.filter((e) => e.typeId === 'llave').length}
+          result={'opened' in chestModal ? chestModal : null}
+          onOpen={attemptChest}
+          onClose={() => setChestModal(null)}
+        />
+      )}
+      {showPlayerCard && (
+        <PlayerCardModal
+          faction={faction}
+          xp={xp}
+          scrap={scrap}
+          skin={skin}
+          equippedTitle={title}
+          onSkin={setSkin}
+          onScrap={setScrap}
+          onToast={showToast}
+          onClose={() => setShowPlayerCard(false)}
+        />
+      )}
       {abduction && (
-        <AbductionGame item={abduction} onWin={abductionWin} onLose={abductionLose} />
+        <AbductionGame
+          item={abduction}
+          level={levelInfo(xp).level}
+          onWin={abductionWin}
+          onLose={abductionLose}
+        />
+      )}
+      {duelChallenge && (
+        <DuelChallengeModal
+          rival={duelChallenge}
+          onConfirm={confirmDuel}
+          onCancel={() => setDuelChallenge(null)}
+        />
+      )}
+      {duel && <DuelGame rival={duel} onWin={duelWin} onLose={duelLose} />}
+      {recruitOffer && !showFaction && !showIntro && (
+        <RecruitModal
+          factionKey={recruitOffer.factionKey}
+          recruiterName={recruitOffer.recruiterName}
+          onAccept={acceptRecruit}
+          onDecline={() => setRecruitOffer(null)}
+        />
       )}
       {showBoss && boss && (
         <BossModal
@@ -1040,9 +1390,24 @@ export default function App() {
           onClose={() => setShowCamp(false)}
         />
       )}
-      {showFaction && !showIntro && (
-        <FactionModal onPick={pickFaction} onLater={() => setShowFaction(false)} />
-      )}
+      {showFaction &&
+        !showIntro &&
+        (factionStage === 'quiz' ? (
+          <FactionQuiz
+            onDone={({ recommended, speciesScore }) => {
+              setPetAffinity(speciesScore)
+              setQuizRecommended(recommended)
+              setFactionStage('pick')
+            }}
+            onSkip={() => setFactionStage('pick')}
+          />
+        ) : (
+          <FactionModal
+            recommended={quizRecommended}
+            onPick={pickFaction}
+            onLater={() => setShowFaction(false)}
+          />
+        ))}
       {showLinkNudge && !showFaction && !showIntro && !petModal && (
         <LinkNudgeModal
           level={levelInfo(xp).level}

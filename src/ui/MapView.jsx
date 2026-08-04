@@ -2,29 +2,45 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import { spawnAround, distanceM, COLLECT_RADIUS, HIDEOUT_REVEAL_M } from '../game/spawn'
-import { RARITIES } from '../game/items'
+import { RARITIES, FACTIONS } from '../game/items'
+import { SKINS } from '../game/skins'
 import { FogLayer } from './fog'
 import { t } from '../game/i18n'
 
 const WALK_SPEED = 60 // m/s en modo paseo (rápido para que sea ágil)
 
-function playerIcon() {
+// El anillo lleva el color de tu facción (si tienes); el cuerpo lleva tu
+// skin equipada (si tienes) — son cosas independientes, ambas se ven a la vez.
+function playerIcon(faction, skinId) {
+  const f = FACTIONS[faction]
+  const skin = SKINS[skinId]
+  const vars = [f ? `--fc:${f.color}` : '', skin ? `--sk1:${skin.colors[0]};--sk2:${skin.colors[1]}` : '']
+    .filter(Boolean)
+    .join(';')
+  const classes = ['player-wrap', f && 'has-faction', skin && 'has-skin', skin?.animated && 'skin-animated']
+    .filter(Boolean)
+    .join(' ')
   return L.divIcon({
     className: '',
-    html: `<div class="player-wrap">
+    html: `<div class="${classes}"${vars ? ` style="${vars}"` : ''}>
       <div class="player-shadow"></div>
       <div class="player-ring"></div>
       <div class="player-marker">🤖</div>
+      ${skin?.badge ? `<div class="player-badge">${skin.badge}</div>` : ''}
     </div>`,
     iconSize: [56, 56],
     iconAnchor: [28, 34],
   })
 }
 
-function peerIcon() {
+function peerIcon(peer) {
+  // El color de facción se ve de un vistazo: sabes si es un rival retable
+  // antes incluso de acercarte
+  const f = FACTIONS[peer.faction]
+  const style = f ? ` style="--fc:${f.color}"` : ''
   return L.divIcon({
     className: '',
-    html: '<div class="peer-marker">🤖</div>',
+    html: `<div class="peer-marker${f ? ' has-faction' : ''}"${style}>🤖</div>`,
     iconSize: [38, 38],
     iconAnchor: [19, 19],
   })
@@ -47,9 +63,12 @@ function itemIcon(item, vigil, anomalous = false) {
 function petIcon(emoji) {
   return L.divIcon({
     className: 'pet-follow', // transición CSS: el Compañero trota tras de ti
-    html: `<div class="pet-marker">${emoji}</div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 24],
+    html: `<div class="pet-wrap">
+      <div class="pet-shadow"></div>
+      <div class="pet-badge"><div class="pet-marker">${emoji}</div></div>
+    </div>`,
+    iconSize: [42, 46],
+    iconAnchor: [21, 40],
   })
 }
 
@@ -71,12 +90,32 @@ function hideoutIcon() {
   })
 }
 
+function chestIcon() {
+  return L.divIcon({
+    className: '',
+    html: '<div class="chest-marker">🔒</div>',
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+  })
+}
+
+function nucleoIcon() {
+  return L.divIcon({
+    className: '',
+    html: '<div class="nucleo-marker">🌌</div>',
+    iconSize: [56, 56],
+    iconAnchor: [28, 28],
+  })
+}
+
 export default function MapView({
   pos,
   bucket,
   collected,
   peers = [],
   hideout = null,
+  nucleo = null,
+  chest = null,
   weather = 'clear',
   vigilance = false,
   night = false,
@@ -84,10 +123,16 @@ export default function MapView({
   anomalies = [],
   pet = null,
   camp = null,
+  faction = null,
+  skin = null,
   onWalk,
   onItemTap,
   onHideoutTap,
   onCampTap,
+  onPeerTap,
+  onPlayerTap,
+  onNucleoTap,
+  onChestTap,
 }) {
   const elRef = useRef(null)
   const mapRef = useRef(null)
@@ -100,9 +145,11 @@ export default function MapView({
   const petRef = useRef(null)
   const hideoutRef = useRef(null)
   const campRef = useRef(null)
+  const nucleoRef = useRef(null)
+  const chestRef = useRef(null)
   const animRef = useRef(0)
   const cbs = useRef({})
-  cbs.current = { onWalk, onItemTap, onHideoutTap, onCampTap }
+  cbs.current = { onWalk, onItemTap, onHideoutTap, onCampTap, onPeerTap, onNucleoTap, onChestTap, onPlayerTap }
   // Diagnóstico visible: si ni un solo proveedor de teselas responde (p. ej.
   // navegadores como Opera que enrutan las imágenes por su propio proxy de
   // ahorro de datos, que a veces las bloquea o las rompe), esto evita que el
@@ -206,10 +253,13 @@ export default function MapView({
       interactive: false,
     }).addTo(map)
     playerRef.current = L.marker([pos.lat, pos.lng], {
-      icon: playerIcon(),
+      icon: playerIcon(faction, skin),
       zIndexOffset: 1000,
-      interactive: false,
     }).addTo(map)
+    playerRef.current.on('click', (e) => {
+      if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent)
+      cbs.current.onPlayerTap?.()
+    })
     // Un tap suelto camina; un doble tap (o doble clic) es el gesto nativo
     // de Leaflet para hacer zoom y NO debe interpretarse como intención de
     // caminar — sin esto, cada zoom con doble tap disparaba también el
@@ -253,6 +303,13 @@ export default function MapView({
     fogRef.current?.setNight(night)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [night, retryKey])
+
+  // El robot se tiñe del color de tu facción y de tu skin equipada, sin
+  // reconstruir el marcador: solo se cambia el icono
+  useEffect(() => {
+    playerRef.current?.setIcon(playerIcon(faction, skin))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faction, skin, retryKey])
 
   // Anomalías radiactivas: brillo verde en la niebla + círculo, núcleo y botín
   useEffect(() => {
@@ -306,7 +363,7 @@ export default function MapView({
     const at = playerRef.current?.getLatLng() ?? L.latLng(pos.lat, pos.lng)
     petRef.current = L.marker(at, {
       icon: petIcon(pet.emoji),
-      zIndexOffset: 950,
+      zIndexOffset: 1050, // por delante del jugador (1000): que se vea, no que se esconda
       interactive: false,
     }).addTo(map)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -377,21 +434,46 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hideout, pos, retryKey])
 
-  // Tu campamento: siempre visible en el mapa
+  // El Cofre del Gremio: igual que el Escondite, solo se materializa cerca
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    chestRef.current?.remove()
+    chestRef.current = null
+    if (!chest || distanceM(pos, chest) > HIDEOUT_REVEAL_M) return
+    const marker = L.marker([chest.lat, chest.lng], {
+      icon: chestIcon(),
+      zIndexOffset: 900,
+    }).addTo(map)
+    marker.on('click', (e) => {
+      if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent)
+      cbs.current.onChestTap?.(chest)
+    })
+    chestRef.current = marker
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chest, pos, retryKey])
+
+  // Tu campamento: siempre visible en el mapa. Cuando estás encima (p. ej.
+  // reclamando el botín diario) y el Compañero también anda cerca, los tres
+  // marcadores (jugador, Compañero, campamento) coinciden casi en el mismo
+  // punto — un desplazamiento fijo en pantalla (no en coordenadas reales,
+  // así que a distancia se sigue viendo justo donde está) los separa, en un
+  // cuadrante distinto al del Compañero para que no vuelvan a chocar.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
     campRef.current?.remove()
     campRef.current = null
     if (!camp) return
+    const close = distanceM(pos, camp) < 25
     const marker = L.marker([camp.lat, camp.lng], {
       icon: L.divIcon({
         className: '',
-        html: '<div class="camp-marker">⛺</div>',
+        html: `<div class="camp-wrap${close ? ' camp-nudge' : ''}"><div class="camp-marker">⛺</div></div>`,
         iconSize: [46, 46],
         iconAnchor: [23, 40],
       }),
-      zIndexOffset: 800,
+      zIndexOffset: 1020, // por delante del jugador (1000): quedaba tapado al volver a casa
     }).addTo(map)
     marker.on('click', (e) => {
       if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent)
@@ -399,7 +481,28 @@ export default function MapView({
     })
     campRef.current = marker
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camp, retryKey])
+  }, [camp, pos, retryKey])
+
+  // El Núcleo del Desechador: a diferencia del Escondite (que solo se
+  // materializa muy cerca), este se ve siempre que exista — es de todo el
+  // servidor y hay que patrullar un radio grande para encontrarlo
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    nucleoRef.current?.remove()
+    nucleoRef.current = null
+    if (!nucleo) return
+    const marker = L.marker([nucleo.lat, nucleo.lng], {
+      icon: nucleoIcon(),
+      zIndexOffset: 900,
+    }).addTo(map)
+    marker.on('click', (e) => {
+      if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent)
+      cbs.current.onNucleoTap?.(nucleo)
+    })
+    nucleoRef.current = marker
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nucleo, retryKey])
 
   // Otros recolectores conectados en tu zona (fase 2)
   useEffect(() => {
@@ -408,7 +511,12 @@ export default function MapView({
     layer.clearLayers()
     for (const peer of peers) {
       if (typeof peer.lat !== 'number' || typeof peer.lng !== 'number') continue
-      layer.addLayer(L.marker([peer.lat, peer.lng], { icon: peerIcon(), interactive: false }))
+      const marker = L.marker([peer.lat, peer.lng], { icon: peerIcon(peer) })
+      marker.on('click', (e) => {
+        if (e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent)
+        cbs.current.onPeerTap?.(peer)
+      })
+      layer.addLayer(marker)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peers, retryKey])

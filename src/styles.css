@@ -195,6 +195,43 @@ body {
   animation: ring-pulse 2s ease-out infinite;
 }
 
+/* Una vez tienes facción, el robot lleva su color — se ve de un vistazo
+   quién eres, igual que ya pasa con los demás jugadores en el mapa */
+.player-wrap.has-faction .player-ring {
+  border-color: var(--fc);
+}
+
+.player-wrap.has-faction .player-marker {
+  background: linear-gradient(160deg, #fff, color-mix(in srgb, var(--fc) 55%, #fff));
+  border-color: color-mix(in srgb, var(--fc) 70%, var(--ink));
+}
+
+/* La skin manda sobre el color del cuerpo (la facción se queda solo en el
+   anillo) — es tu elección de vestuario, la más visible de las dos */
+.player-wrap.has-skin .player-marker {
+  background: linear-gradient(160deg, var(--sk1), var(--sk2));
+}
+
+.player-wrap.skin-animated .player-marker {
+  animation:
+    idle-hop 2.4s ease-in-out infinite,
+    skin-hue 4s linear infinite;
+}
+
+@keyframes skin-hue {
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.player-badge {
+  position: absolute;
+  right: -4px;
+  bottom: 2px;
+  font-size: 16px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
 @keyframes ring-pulse {
   0% {
     transform: scale(0.8);
@@ -250,6 +287,18 @@ body {
   font-size: 20px;
   opacity: 0.85;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+/* Recolector con facción conocida: su color se ve antes de acercarte,
+   así identificas a un rival retable de un vistazo */
+.peer-marker.has-faction {
+  --fc: #4f46e5;
+  background: linear-gradient(160deg, #fff, color-mix(in srgb, var(--fc) 35%, #fff));
+  border-color: var(--fc);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 3px color-mix(in srgb, var(--fc) 30%, transparent);
 }
 
 /* --- Objetos --- */
@@ -733,6 +782,32 @@ body {
   box-shadow: 0 1px 0 #d97706;
 }
 
+.fuse-btn {
+  margin-top: 4px;
+  border: 2px solid #7c3aed;
+  border-radius: 12px;
+  background: linear-gradient(170deg, #ede9fe, #c4b5fd);
+  color: #4c1d95;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 11.5px;
+  padding: 6px 10px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #6d28d9;
+  transition: transform 0.1s;
+}
+
+.fuse-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #6d28d9;
+}
+
+.fuse-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: 0 3px 0 #6d28d9;
+}
+
 /* ---------- Modales y toast ---------- */
 
 .overlay {
@@ -772,6 +847,15 @@ body {
   box-shadow:
     0 8px 0 var(--ink-soft),
     0 0 44px 8px color-mix(in srgb, var(--rc) 70%, transparent);
+}
+
+.share-preview {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 16px;
+  border: 3px solid var(--ink);
+  background: #0f0a08;
+  aspect-ratio: 900 / 1125;
 }
 
 @keyframes pop-in {
@@ -933,62 +1017,145 @@ body {
   }
 }
 
-.compass {
+/* El Núcleo del Desechador: uno solo por día en todo el servidor — el
+   marcador más especial del juego, así que el brillo también lo es */
+.nucleo-marker {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #082f49 20%, #0e7490 65%, #22d3ee 100%);
+  border: 3px solid #fde68a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  cursor: pointer;
+  animation: nucleo-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes nucleo-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 16px 5px rgba(34, 211, 238, 0.75), 0 0 30px 10px rgba(253, 230, 138, 0.35);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 32px 14px rgba(34, 211, 238, 0.95), 0 0 50px 18px rgba(253, 230, 138, 0.55);
+  }
+}
+
+/* Cofre del Gremio: sellado, metálico — distinto del portal violeta del
+   Escondite para que no se confundan de un vistazo */
+.chest-marker {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: radial-gradient(circle, #451a03 20%, #92400e 70%, #d97706 100%);
+  border: 3px solid #fcd34d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  animation: chest-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes chest-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 10px 3px rgba(217, 119, 6, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 22px 8px rgba(252, 211, 77, 0.85);
+  }
+}
+
+/* Panel único: antes eran hasta 4 chips flotantes apilados a base de
+   offsets sueltos (uno por escondite, núcleo, cofre y Reclamador) — mismo
+   sitio de siempre (abajo a la izquierda), pero una sola tarjeta con filas
+   compactas en vez de 4 elementos separados compitiendo por espacio. */
+.compass-panel {
   position: absolute;
   left: 14px;
   bottom: 110px;
   z-index: 650;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
   background: #fff;
   border: 3px solid var(--ink);
-  border-radius: 30px;
-  padding: 6px 14px 6px 6px;
+  border-radius: 20px;
   box-shadow: 0 4px 0 var(--ink-soft);
-  pointer-events: none;
+  overflow: hidden;
+  max-width: 195px;
+  animation: pop-in 0.3s ease-out;
 }
 
-.compass-dial {
-  width: 40px;
-  height: 40px;
+.compass-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 7px 8px;
+}
+
+.compass-row:not(:last-child) {
+  border-bottom: 2px solid #eef2f6;
+}
+
+.compass-row.clickable {
+  cursor: pointer;
+}
+
+.compass-row-dial {
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: radial-gradient(circle, #ede9fe, #c4b5fd);
-  border: 2.5px solid #6d28d9;
+  border: 2px solid #6d28d9;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.compass-arrow {
-  font-size: 20px;
+.compass-row-arrow {
+  font-size: 13px;
   color: #4c1d95;
   /* ➤ apunta al este por defecto: girar -90° para que 0° sea el norte */
   rotate: -90deg;
   transition: transform 0.4s ease;
 }
 
-.compass-info {
+.compass-row-icon {
+  width: 26px;
+  height: 26px;
   display: flex;
-  flex-direction: column;
-  line-height: 1.15;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
-.compass-title {
+.compass-row-label {
   font-size: 11px;
   font-weight: 800;
   color: #6d28d9;
+  flex: 1;
 }
 
-.compass-dist {
-  font-size: 14px;
+.compass-row-value {
+  font-size: 12px;
   font-weight: 800;
   color: var(--ink);
+  white-space: nowrap;
 }
 
-.compass.close {
-  animation: event-glow 1.2s ease-in-out infinite;
-  border-color: #6d28d9;
+.compass-row.close {
+  background: rgba(109, 40, 217, 0.1);
+}
+
+.compass-row.dead .compass-row-value {
+  color: #7c3aed;
 }
 
 .lore-card {
@@ -1041,6 +1208,7 @@ body {
 
 .faction-card {
   --fc: #94a3b8;
+  position: relative;
   width: 100%;
   display: flex;
   align-items: center;
@@ -1054,6 +1222,27 @@ body {
   cursor: pointer;
   box-shadow: 0 4px 0 color-mix(in srgb, var(--fc) 60%, var(--ink-soft));
   transition: transform 0.1s;
+}
+
+.faction-card.recommended {
+  margin-top: 14px;
+  box-shadow:
+    0 4px 0 color-mix(in srgb, var(--fc) 60%, var(--ink-soft)),
+    0 0 0 3px color-mix(in srgb, var(--fc) 35%, transparent);
+}
+
+.faction-reco {
+  position: absolute;
+  top: -13px;
+  left: 12px;
+  background: var(--fc);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
 }
 
 .faction-card:active {
@@ -1084,6 +1273,42 @@ body {
   font-size: 11.5px;
   font-weight: 700;
   color: color-mix(in srgb, var(--fc) 70%, #333);
+}
+
+/* ---------- Cuestionario de facción ---------- */
+
+.quiz-progress {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 2px 0 14px;
+}
+
+.quiz-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e2e8f0;
+}
+
+.quiz-dot.filled {
+  background: var(--sky-2, #38bdf8);
+}
+
+.quiz-question {
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+  margin: 0 0 12px;
+}
+
+.quiz-option {
+  --fc: #94a3b8;
+}
+
+.quiz-option .faction-body {
+  font-size: 14px;
+  color: var(--ink);
 }
 
 /* ---------- Mercado ---------- */
@@ -1404,20 +1629,57 @@ body {
   transition: transform 1.4s cubic-bezier(0.35, 0, 0.3, 1);
 }
 
-.pet-marker {
-  font-size: 24px;
-  line-height: 32px;
-  text-align: center;
-  filter: drop-shadow(0 3px 2px rgba(30, 15, 0, 0.35));
+/* Desplazado a un lado a propósito: si no, su posición coincide casi
+   siempre con la del jugador (el Compañero "persigue" tu posición previa)
+   y quedaba visualmente tapado por el robot pese a estar por delante en z */
+.pet-wrap {
+  position: relative;
+  width: 42px;
+  height: 46px;
+  transform: translate(15px, 2px);
+}
+
+.pet-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 22px;
+  height: 8px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(7, 40, 60, 0.32);
+}
+
+.pet-badge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #d9f99d, #65a30d);
+  border: 3px solid var(--ink);
+  box-shadow:
+    0 3px 0 var(--ink-soft),
+    0 5px 12px rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   animation: pet-bob 0.9s ease-in-out infinite alternate;
+}
+
+.pet-marker {
+  font-size: 19px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(30, 15, 0, 0.35));
 }
 
 @keyframes pet-bob {
   from {
-    transform: translateY(0) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
   to {
-    transform: translateY(-4px) scale(1.06);
+    transform: translate(-50%, -50%) translateY(-4px) scale(1.06);
   }
 }
 
@@ -1569,7 +1831,7 @@ body {
   font-size: 72px;
   filter: drop-shadow(0 0 22px rgba(167, 139, 250, 1));
   animation: ufo-bob 1.2s ease-in-out infinite;
-  z-index: 2;
+  z-index: 4;
 }
 
 .abduction-beam {
@@ -1582,6 +1844,7 @@ body {
   clip-path: polygon(32% 0, 68% 0, 100% 100%, 0 100%);
   background: linear-gradient(180deg, rgba(196, 181, 253, 0.5), rgba(196, 181, 253, 0.06));
   animation: beam-pulse 0.8s ease-in-out infinite;
+  z-index: 1;
 }
 
 .abduction-item {
@@ -1652,30 +1915,101 @@ body {
   box-shadow: 0 0 8px 2px rgba(251, 191, 36, 0.7);
 }
 
-/* ---------- El Reclamador ---------- */
+/* ---------- Duelo ---------- */
 
-.boss-chip {
+.overlay.duel {
+  background: rgba(30, 6, 10, 0.9);
+}
+
+.duel-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(90vw, 380px);
+  padding: 24px;
+  border-radius: 22px;
+  background: rgba(20, 8, 12, 0.6);
+  border: 2px solid color-mix(in srgb, var(--fc, #94a3b8) 55%, transparent);
+}
+
+.duel-rivals {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 44px;
+}
+
+.duel-vs {
+  font-size: 16px;
+  font-weight: 900;
+  color: #fca5a5;
+}
+
+.duel-rival {
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--fc, #94a3b8) 80%, transparent));
+}
+
+.duel-title {
+  color: #fee2e2;
+  text-align: center;
+  font-size: 15px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.duel-bar {
+  position: relative;
+  width: 100%;
+  height: 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fc, #94a3b8) 30%, #1e0a0c);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  overflow: visible;
+}
+
+.duel-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fbbf24, #fde68a);
+  transition: width 0.08s linear;
+}
+
+.duel-bar-marker {
   position: absolute;
-  left: 14px;
-  bottom: 176px;
-  z-index: 650;
-  border: 3px solid #4c1d95;
-  background: linear-gradient(170deg, #2e1065, #4c1d95);
-  color: #ede9fe;
-  border-radius: 18px;
-  padding: 8px 14px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 4px 0 rgba(46, 16, 101, 0.8);
+  top: 50%;
+  font-size: 22px;
+  transform: translate(-50%, -50%);
+  transition: left 0.08s linear;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
 }
 
-.boss-chip.dead {
-  background: linear-gradient(170deg, #78350f, #b45309);
-  border-color: #fbbf24;
-  animation: event-glow 1.2s ease-in-out infinite;
+.duel-tap-btn {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  border: 4px solid #fbbf24;
+  background: radial-gradient(circle, #fef3c7, #f59e0b);
+  font-size: 18px;
+  font-weight: 800;
+  color: #451a03;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #b45309;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
+
+.duel-tap-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #b45309;
+}
+
+.duel-hint {
+  color: #fecaca;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ---------- El Reclamador ---------- */
 
 .boss-modal .boss-face {
   filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.9));
@@ -1744,6 +2078,13 @@ body {
   box-shadow:
     0 4px 0 rgba(22, 101, 52, 0.7),
     0 0 12px 3px rgba(134, 239, 172, 0.6);
+}
+
+/* Cuadrante contrario al del Compañero (que se desplaza abajo-derecha, ver
+   .pet-wrap): así, cuando coinciden jugador + Compañero + campamento, los
+   tres se reparten en vez de amontonarse */
+.camp-wrap.camp-nudge {
+  transform: translate(-22px, -18px);
 }
 
 /* Objeto recogido volando a la mochila */
