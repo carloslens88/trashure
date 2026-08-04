@@ -3,7 +3,7 @@
 // bajo la misma URL). El timeout importa: en redes móviles inestables un
 // fetch() puede quedarse colgado sin resolver NUNCA (ni éxito ni error),
 // dejando la app a medio cargar hasta que el usuario recarga a mano.
-const CACHE = 'gc-shell-v3'
+const CACHE = 'gc-shell-v4'
 const NETWORK_TIMEOUT_MS = 4000
 
 function withTimeout(promise, ms) {

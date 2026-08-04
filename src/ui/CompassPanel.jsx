@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { bearingDeg, distanceM } from '../game/spawn'
 import { t } from '../game/i18n'
 
@@ -30,13 +31,36 @@ function CompassRow({ pos, target, icon, label, revealM, value, dead, title, onC
   )
 }
 
-// Un único panel en vez de varios chips sueltos apilados a ojo — reúne todo
-// lo "regional" (brújulas + estado del Reclamador) en una sola tarjeta.
+// Colapsado por defecto: un solo botón redondo con el recuento, igual que
+// el resto de botones sueltos del HUD (ranking, misiones…) en vez de una
+// tarjeta siempre abierta ocupando la esquina. Un toque la despliega.
 export default function CompassPanel({ rows }) {
+  const [open, setOpen] = useState(false)
   const visible = rows.filter(Boolean)
   if (visible.length === 0) return null
+
+  const anyClose = visible.some((r) => r.target && distanceM(r.pos, r.target) <= r.revealM)
+
+  if (!open) {
+    return (
+      <button
+        className={`compass-toggle ${anyClose ? 'close' : ''}`}
+        onClick={() => setOpen(true)}
+        aria-label={t('Brújulas')}
+      >
+        🧭
+        <span className="compass-toggle-count">{visible.length}</span>
+      </button>
+    )
+  }
+
   return (
     <div className="compass-panel">
+      <div className="compass-row compass-row-header clickable" onClick={() => setOpen(false)}>
+        <span className="compass-row-icon">🧭</span>
+        <span className="compass-row-label">{t('Brújulas')}</span>
+        <span className="compass-row-value">✕</span>
+      </div>
       {visible.map((row, i) => (
         <CompassRow key={i} {...row} />
       ))}

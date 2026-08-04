@@ -1071,6 +1071,57 @@ body {
   }
 }
 
+/* Colapsado por defecto: un botón redondo igual que el resto de botones
+   sueltos del HUD, con el recuento — ocupa lo mismo que cualquier otro
+   icono en vez de una tarjeta siempre desplegada. */
+.compass-toggle {
+  position: absolute;
+  left: 14px;
+  bottom: 110px;
+  z-index: 650;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: linear-gradient(170deg, #ede9fe, #c4b5fd);
+  box-shadow: 0 4px 0 var(--ink-soft);
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.compass-toggle:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink-soft);
+}
+
+.compass-toggle.close {
+  animation: event-glow 1.2s ease-in-out infinite;
+}
+
+.compass-toggle-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: #ef4444;
+  border: 2px solid #fff;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compass-row-header {
+  background: #f5f3ff;
+}
+
 /* Panel único: antes eran hasta 4 chips flotantes apilados a base de
    offsets sueltos (uno por escondite, núcleo, cofre y Reclamador) — mismo
    sitio de siempre (abajo a la izquierda), pero una sola tarjeta con filas

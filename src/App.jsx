@@ -461,7 +461,6 @@ export default function App() {
     let cancelled = false
     ensureSession().then(async (user) => {
       if (cancelled || !user) return
-      setOnline(true)
       setIsAnonymous(Boolean(user.is_anonymous) && !user.email)
       const profile = await fetchProfile()
       if (cancelled) return
@@ -489,6 +488,12 @@ export default function App() {
           showToast(t('✅ ¡Sesión iniciada! Bienvenido de vuelta, {name}', { name: profile.username }))
         }
       }
+      // "online" se activa AQUÍ, ya con facción/usuario cargados: si se
+      // activara antes (como estaba), la primera vez que anuncias tu
+      // presencia a los demás lo harías con facción null, y quien te
+      // retara justo en ese margen vería la instantánea vieja aunque tu sí
+      // tuvieras facción de verdad — bug real reportado en pruebas.
+      setOnline(true)
       refreshServerInv()
     })
     return () => {

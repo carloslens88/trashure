@@ -409,6 +409,7 @@ const EN = {
   '¡Mira lo que he encontrado en Trashure!': 'Look what I found in Trashure!',
   'Encontrado por {name} en el yermo': 'Found by {name} in the wasteland',
   'Encontrado en el yermo': 'Found in the wasteland',
+  'Brújulas': 'Compasses',
 
   // ---------- Mercado y trueques ----------
   '🏪 Mercado': '🏪 Market',
